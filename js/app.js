@@ -211,8 +211,8 @@ function renderHeroStats(entries, profile) {
       deltaPill.innerHTML = '— 0.0kg';
     }
     if (maEl) maEl.textContent = '0.0';
-    if (targetEl) targetEl.textContent = `${profile.targetWeight || 68.0} kg`;
-    if (remainEl) remainEl.textContent = `${profile.targetWeight || 68.0} kg`;
+    if (targetEl) targetEl.textContent = `${profile.targetWeight || 68.0}kg`;
+    if (remainEl) remainEl.textContent = `${profile.targetWeight || 68.0}`;
     if (progBar) progBar.style.width = '0%';
     if (progText) progText.textContent = '오늘 첫 기록을 남겨보세요!';
     if (bmiValEl) bmiValEl.textContent = '0.0';
@@ -220,7 +220,7 @@ function renderHeroStats(entries, profile) {
       bmiBadgeEl.textContent = '기록 대기';
       bmiBadgeEl.className = 'stat-delta-pill neutral';
     }
-    if (streakBadge) streakBadge.textContent = '🔥 0일 기록 시작';
+    if (streakBadge) streakBadge.textContent = '🔥 0일';
     return;
   }
 
@@ -240,8 +240,8 @@ function renderHeroStats(entries, profile) {
   if (maEl) maEl.textContent = metrics.avg7Days.toFixed(1);
 
   // 4. Target Remaining & Progress Bar
-  if (targetEl) targetEl.textContent = `${profile.targetWeight} kg`;
-  if (remainEl) remainEl.textContent = `${metrics.remainingKg} kg`;
+  if (targetEl) targetEl.textContent = `${profile.targetWeight}kg`;
+  if (remainEl) remainEl.textContent = `${metrics.remainingKg}`;
   if (progBar) progBar.style.width = `${metrics.progressPercent}%`;
   if (progText) progText.textContent = `목표 달성률 ${metrics.progressPercent}%`;
 
@@ -256,7 +256,7 @@ function renderHeroStats(entries, profile) {
 
   // Header Streak Badge
   if (streakBadge) {
-    streakBadge.textContent = `🔥 ${metrics.streak}일 연속 기록`;
+    streakBadge.textContent = `🔥 ${metrics.streak}일`;
   }
 }
 

@@ -43,18 +43,18 @@
       <div class="header-actions">
         <!-- Streak Badge -->
         <span class="brand-badge" id="headerStreakBadge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border-color: rgba(245, 158, 11, 0.3);">
-          🔥 0일 연속
+          🔥 0일
         </span>
 
         <!-- Cloud Sync Badge -->
         <div class="sync-badge" id="cloudSyncBadge" title="클라우드 동기화 상태">
           <span class="sync-dot"></span>
-          <span class="sync-text">로컬 저장</span>
+          <span class="sync-text">로컬</span>
         </div>
 
         <!-- Share / QR Button -->
-        <button class="btn btn-outline" id="btnOpenShareModal" style="padding: 0.5rem 0.8rem; font-size: 0.8125rem;">
-          📱 외부 연결
+        <button class="btn btn-outline" id="btnOpenShareModal" style="padding: 0.45rem 0.65rem; font-size: 0.8125rem;">
+          <span>📱</span><span class="share-btn-text"> 연결</span>
         </button>
 
         <!-- Theme Toggle -->
@@ -131,7 +131,7 @@
         </div>
         <div style="display: flex; align-items: center; justify-content: space-between;">
           <span class="stat-delta-pill down" id="statBmiBadge">정상 체중</span>
-          <span class="stat-footer-text">한국 비만학회 기준</span>
+          <span class="stat-footer-text">비만학회 기준</span>
         </div>
       </div>
     </section>
@@ -273,9 +273,9 @@
         <div class="calendar-header">
           <div class="calendar-title" id="calendarMonthTitle">2026년 9월</div>
           <div style="display: flex; gap: 0.35rem;">
-            <button class="btn btn-outline" id="btnCalPrev" style="padding: 0.4rem 0.75rem;">◀ 이전달</button>
-            <button class="btn btn-outline" id="btnCalToday" style="padding: 0.4rem 0.75rem;">오늘</button>
-            <button class="btn btn-outline" id="btnCalNext" style="padding: 0.4rem 0.75rem;">다음달 ▶</button>
+            <button class="btn btn-outline cal-nav-btn" id="btnCalPrev">◀<span class="cal-nav-text"> 이전달</span></button>
+            <button class="btn btn-outline cal-nav-btn" id="btnCalToday">오늘</button>
+            <button class="btn btn-outline cal-nav-btn" id="btnCalNext"><span class="cal-nav-text">다음달 </span>▶</button>
           </div>
         </div>
 
