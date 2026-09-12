@@ -1,0 +1,24 @@
+{
+  "name": "FitTrack Pro - 스마트 체중 일기 & 심층 분석",
+  "short_name": "체중일기",
+  "description": "매일 체중을 기록하고 7일 이동평균선과 감량 속도를 분석하는 스마트 체중 대시보드",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0e17",
+  "theme_color": "#0a0e17",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

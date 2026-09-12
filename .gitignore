@@ -1,0 +1,4 @@
+.DS_Store
+cloudflared
+tunnel_info.json
+*.tgz
