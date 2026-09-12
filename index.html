@@ -24,7 +24,7 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
   <!-- Core Stylesheet -->
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css?v=20260913_2">
 </head>
 <body>
 
@@ -269,13 +269,13 @@
          ========================================================================== -->
     <section class="tab-pane" id="tab-calendar">
       <!-- Calendar View Card -->
-      <div class="card">
+      <div class="card calendar-card">
         <div class="calendar-header">
-          <div class="calendar-title" id="calendarMonthTitle">2026년 9월</div>
-          <div style="display: flex; gap: 0.35rem;">
-            <button class="btn btn-outline cal-nav-btn" id="btnCalPrev">◀<span class="cal-nav-text"> 이전달</span></button>
+          <h3 class="calendar-title" id="calendarMonthTitle">2026년 9월</h3>
+          <div class="cal-nav-group">
+            <button class="btn btn-outline cal-nav-btn" id="btnCalPrev" aria-label="이전달">◀</button>
             <button class="btn btn-outline cal-nav-btn" id="btnCalToday">오늘</button>
-            <button class="btn btn-outline cal-nav-btn" id="btnCalNext"><span class="cal-nav-text">다음달 </span>▶</button>
+            <button class="btn btn-outline cal-nav-btn" id="btnCalNext" aria-label="다음달">▶</button>
           </div>
         </div>
 
@@ -627,6 +627,6 @@
   </div>
 
   <!-- App Bootstrap JS -->
-  <script type="module" src="js/app.js"></script>
+  <script type="module" src="js/app.js?v=20260913_2"></script>
 </body>
 </html>
