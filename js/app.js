@@ -77,13 +77,13 @@ function initEventListeners() {
 
   // Record Form Stepper Buttons
   const weightInput = document.getElementById('recordWeightInput');
-  document.querySelectorAll('.stepper-btn').forEach(btn => {
+  document.querySelectorAll('.stepper-btn[data-step]').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const step = parseFloat(e.currentTarget.getAttribute('data-step') || '0');
       let val = parseFloat(weightInput.value) || 70.0;
-      val = +(val + step).toFixed(1);
+      val = +(val + step).toFixed(2);
       if (val > 20 && val < 300) {
-        weightInput.value = val.toFixed(1);
+        weightInput.value = val.toFixed(2);
       }
     });
   });
@@ -204,15 +204,15 @@ function renderHeroStats(entries, profile) {
   const streakBadge = document.getElementById('headerStreakBadge');
 
   if (!metrics || entries.length === 0) {
-    if (curEl) curEl.textContent = '0.0';
-    if (deltaEl) deltaEl.textContent = '— 0.0 kg';
+    if (curEl) curEl.textContent = '0.00';
+    if (deltaEl) deltaEl.textContent = '— 0.00 kg';
     if (deltaPill) {
       deltaPill.className = 'stat-delta-pill neutral';
-      deltaPill.innerHTML = '— 0.0kg';
+      deltaPill.innerHTML = '— 0.00kg';
     }
-    if (maEl) maEl.textContent = '0.0';
-    if (targetEl) targetEl.textContent = `${profile.targetWeight || 68.0}kg`;
-    if (remainEl) remainEl.textContent = `${profile.targetWeight || 68.0}`;
+    if (maEl) maEl.textContent = '0.00';
+    if (targetEl) targetEl.textContent = `${Number(profile.targetWeight || 68.0).toFixed(2)}kg`;
+    if (remainEl) remainEl.textContent = `${Number(profile.targetWeight || 68.0).toFixed(2)}`;
     if (progBar) progBar.style.width = '0%';
     if (progText) progText.textContent = '오늘 첫 기록을 남겨보세요!';
     if (bmiValEl) bmiValEl.textContent = '0.0';
@@ -225,23 +225,23 @@ function renderHeroStats(entries, profile) {
   }
 
   // 1. Current Weight
-  if (curEl) curEl.textContent = metrics.currentWeight.toFixed(1);
+  if (curEl) curEl.textContent = Number(metrics.currentWeight).toFixed(2);
 
   // 2. Day Delta Pill
   if (deltaEl && deltaPill) {
     const d = metrics.dayDelta;
-    deltaEl.textContent = `${d > 0 ? '+' : ''}${d.toFixed(1)} kg`;
+    deltaEl.textContent = `${d > 0 ? '+' : ''}${d.toFixed(2)} kg`;
     deltaPill.className = `stat-delta-pill ${d < 0 ? 'down' : (d > 0 ? 'up' : 'neutral')}`;
     const icon = d < 0 ? '▼' : (d > 0 ? '▲' : '—');
-    deltaPill.innerHTML = `${icon} ${d > 0 ? '+' : ''}${d.toFixed(1)}kg`;
+    deltaPill.innerHTML = `${icon} ${d > 0 ? '+' : ''}${d.toFixed(2)}kg`;
   }
 
   // 3. 7-Day Moving Average
-  if (maEl) maEl.textContent = metrics.avg7Days.toFixed(1);
+  if (maEl) maEl.textContent = Number(metrics.avg7Days).toFixed(2);
 
   // 4. Target Remaining & Progress Bar
-  if (targetEl) targetEl.textContent = `${profile.targetWeight}kg`;
-  if (remainEl) remainEl.textContent = `${metrics.remainingKg}`;
+  if (targetEl) targetEl.textContent = `${Number(profile.targetWeight).toFixed(2)}kg`;
+  if (remainEl) remainEl.textContent = `${Number(metrics.remainingKg).toFixed(2)}`;
   if (progBar) progBar.style.width = `${metrics.progressPercent}%`;
   if (progText) progText.textContent = `목표 달성률 ${metrics.progressPercent}%`;
 
@@ -280,7 +280,7 @@ function renderInsights(entries, profile) {
   if (rateEl) {
     if (metrics.projection.weeklyRate) {
       const rate = metrics.projection.weeklyRate;
-      rateEl.innerHTML = `최근 2주간 주당 평균 <strong>${rate > 0 ? '+' : ''}${rate}kg</strong> 페이스로 순항 중입니다.`;
+      rateEl.innerHTML = `최근 2주간 주당 평균 <strong>${rate > 0 ? '+' : ''}${Number(rate).toFixed(2)}kg</strong> 페이스로 순항 중입니다.`;
     } else {
       rateEl.innerHTML = `꾸준한 아침 공복 체중 측정이 건강한 감량 습관의 시작입니다.`;
     }
@@ -288,7 +288,7 @@ function renderInsights(entries, profile) {
 
   if (totalDeltaEl) {
     const t = metrics.totalDelta;
-    totalDeltaEl.innerHTML = `시작일 대비 총 <strong>${t > 0 ? '+' : ''}${t}kg</strong> 변화 (${entries.length}일간의 여정)`;
+    totalDeltaEl.innerHTML = `시작일 대비 총 <strong>${t > 0 ? '+' : ''}${Number(t).toFixed(2)}kg</strong> 변화 (${entries.length}일간의 여정)`;
   }
 }
 
@@ -362,11 +362,11 @@ function renderCalendar() {
       cell.classList.add('has-data');
       const wVal = document.createElement('span');
       wVal.className = 'cal-weight-val num-font';
-      wVal.textContent = `${entry.weight}`;
+      wVal.textContent = `${Number(entry.weight).toFixed(2)}`;
       cell.appendChild(wVal);
 
       if (entry.note) {
-        cell.setAttribute('title', `${entry.weight}kg (${entry.note})`);
+        cell.setAttribute('title', `${Number(entry.weight).toFixed(2)}kg (${entry.note})`);
       }
     }
 
@@ -400,18 +400,18 @@ function renderTable() {
     const nextEntry = entries[idx + 1];
     let deltaHtml = '—';
     if (nextEntry) {
-      const diff = +(e.weight - nextEntry.weight).toFixed(1);
+      const diff = +(e.weight - nextEntry.weight).toFixed(2);
       const cls = diff < 0 ? 'down' : (diff > 0 ? 'up' : 'neutral');
       const arrow = diff < 0 ? '▼' : (diff > 0 ? '▲' : '');
-      deltaHtml = `<span class="stat-delta-pill ${cls}">${arrow} ${diff > 0 ? '+' : ''}${diff}kg</span>`;
+      deltaHtml = `<span class="stat-delta-pill ${cls}">${arrow} ${diff > 0 ? '+' : ''}${diff.toFixed(2)}kg</span>`;
     }
 
     tr.innerHTML = `
       <td class="num-font" style="font-weight: 600;">${e.date}</td>
       <td>${e.timeOfDay === 'evening' ? '저녁' : '아침 공복'}</td>
-      <td class="num-font" style="font-weight: 800; color: var(--accent-primary); font-size: 1rem;">${e.weight} kg</td>
+      <td class="num-font" style="font-weight: 800; color: var(--accent-primary); font-size: 1rem;">${Number(e.weight).toFixed(2)} kg</td>
       <td>${deltaHtml}</td>
-      <td class="num-font">${e.bodyFat ? e.bodyFat + '%' : '—'}</td>
+      <td class="num-font">${e.bodyFat !== null && e.bodyFat !== undefined && e.bodyFat !== '' ? Number(e.bodyFat).toFixed(2) + '%' : '—'}</td>
       <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">${e.note || '—'}</td>
       <td class="table-actions">
         <button class="btn-icon" data-edit-id="${e.id}" title="수정" style="width: 32px; height: 32px;">✏️</button>
@@ -456,20 +456,20 @@ function openRecordModal(defaultDate = null, existingEntry = null) {
   dateInput.value = defaultDate || existingEntry?.date || todayStr;
 
   if (existingEntry) {
-    weightInput.value = existingEntry.weight.toFixed(1);
+    weightInput.value = Number(existingEntry.weight).toFixed(2);
     timeOfDaySelect.value = existingEntry.timeOfDay || 'morning';
-    bodyFatInput.value = existingEntry.bodyFat || '';
-    muscleInput.value = existingEntry.muscleMass || '';
+    bodyFatInput.value = existingEntry.bodyFat !== null && existingEntry.bodyFat !== undefined && existingEntry.bodyFat !== '' ? Number(existingEntry.bodyFat).toFixed(2) : '';
+    muscleInput.value = existingEntry.muscleMass !== null && existingEntry.muscleMass !== undefined && existingEntry.muscleMass !== '' ? Number(existingEntry.muscleMass).toFixed(2) : '';
     noteInput.value = existingEntry.note || '';
   } else {
     // Default weight from latest entry or profile
     const entries = Storage.getEntries();
     const latest = entries[0];
     const defaultWeight = latest ? latest.weight : Storage.getProfile().initialWeight || 72.0;
-    weightInput.value = defaultWeight.toFixed(1);
+    weightInput.value = Number(defaultWeight).toFixed(2);
     timeOfDaySelect.value = 'morning';
-    bodyFatInput.value = latest?.bodyFat || '';
-    muscleInput.value = latest?.muscleMass || '';
+    bodyFatInput.value = latest?.bodyFat ? Number(latest.bodyFat).toFixed(2) : '';
+    muscleInput.value = latest?.muscleMass ? Number(latest.muscleMass).toFixed(2) : '';
     noteInput.value = '';
   }
 
@@ -494,10 +494,12 @@ function closeRecordModal() {
 function handleRecordSubmit(e) {
   e.preventDefault();
   const date = document.getElementById('recordDateInput').value;
-  const weight = parseFloat(document.getElementById('recordWeightInput').value);
+  const weight = parseFloat(parseFloat(document.getElementById('recordWeightInput').value).toFixed(2));
   const timeOfDay = document.getElementById('recordTimeOfDay').value;
-  const bodyFat = parseFloat(document.getElementById('recordBodyFatInput').value) || null;
-  const muscleMass = parseFloat(document.getElementById('recordMuscleInput').value) || null;
+  const bodyFatVal = document.getElementById('recordBodyFatInput').value;
+  const bodyFat = bodyFatVal !== '' && !isNaN(parseFloat(bodyFatVal)) ? parseFloat(parseFloat(bodyFatVal).toFixed(2)) : null;
+  const muscleVal = document.getElementById('recordMuscleInput').value;
+  const muscleMass = muscleVal !== '' && !isNaN(parseFloat(muscleVal)) ? parseFloat(parseFloat(muscleVal).toFixed(2)) : null;
   const note = document.getElementById('recordNoteInput').value.trim();
 
   const selectedTags = Array.from(document.querySelectorAll('.tag-chip.selected')).map(c => c.textContent.trim());
@@ -529,8 +531,8 @@ function handleRecordSubmit(e) {
 function loadProfileIntoForm() {
   const profile = Storage.getProfile();
   document.getElementById('profileHeight').value = profile.height || 175;
-  document.getElementById('profileInitialWeight').value = profile.initialWeight || 75.0;
-  document.getElementById('profileTargetWeight').value = profile.targetWeight || 68.0;
+  document.getElementById('profileInitialWeight').value = Number(profile.initialWeight || 75.0).toFixed(2);
+  document.getElementById('profileTargetWeight').value = Number(profile.targetWeight || 68.0).toFixed(2);
   document.getElementById('profileTargetDate').value = profile.targetDate || '2026-12-31';
   document.getElementById('profileGender').value = profile.gender || 'male';
 }
@@ -539,8 +541,8 @@ function handleProfileSubmit(e) {
   e.preventDefault();
   const profile = {
     height: parseFloat(document.getElementById('profileHeight').value) || 175,
-    initialWeight: parseFloat(document.getElementById('profileInitialWeight').value) || 75.0,
-    targetWeight: parseFloat(document.getElementById('profileTargetWeight').value) || 68.0,
+    initialWeight: parseFloat(parseFloat(document.getElementById('profileInitialWeight').value).toFixed(2)) || 75.0,
+    targetWeight: parseFloat(parseFloat(document.getElementById('profileTargetWeight').value).toFixed(2)) || 68.0,
     targetDate: document.getElementById('profileTargetDate').value,
     gender: document.getElementById('profileGender').value
   };

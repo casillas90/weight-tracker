@@ -173,12 +173,12 @@ export const Storage = {
       // Realistic daily fluctuation (-0.4 to +0.25 kg, with net downward slope)
       const slope = -0.075;
       const noise = (Math.random() - 0.45) * 0.4;
-      current = +(current + slope + noise).toFixed(1);
+      current = +(current + slope + noise).toFixed(2);
 
       // Estimate body fat % (around 22% -> 19.5%)
-      const bodyFat = +(22.5 - ((startWeight - current) * 0.7) + (Math.random() * 0.4 - 0.2)).toFixed(1);
+      const bodyFat = +(22.5 - ((startWeight - current) * 0.7) + (Math.random() * 0.4 - 0.2)).toFixed(2);
       // Estimate muscle mass
-      const muscle = +(31.2 + ((startWeight - current) * 0.1) + (Math.random() * 0.2 - 0.1)).toFixed(1);
+      const muscle = +(31.2 + ((startWeight - current) * 0.1) + (Math.random() * 0.2 - 0.1)).toFixed(2);
 
       const notes = [
         '아침 공복 측정',

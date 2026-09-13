@@ -82,14 +82,14 @@ export const Analytics = {
 
     // Current Weight & 1-day Change
     const currentWeight = latest.weight;
-    const dayDelta = previous ? +(currentWeight - previous.weight).toFixed(1) : 0;
+    const dayDelta = previous ? +(currentWeight - previous.weight).toFixed(2) : 0;
 
     // Total change from initial entry
-    const totalDelta = +(currentWeight - initial.weight).toFixed(1);
+    const totalDelta = +(currentWeight - initial.weight).toFixed(2);
 
     // 7-day Moving Average for latest day
     const last7Days = sortedChrono.slice(-7);
-    const avg7Days = +(last7Days.reduce((sum, e) => sum + e.weight, 0) / last7Days.length).toFixed(1);
+    const avg7Days = +(last7Days.reduce((sum, e) => sum + e.weight, 0) / last7Days.length).toFixed(2);
 
     // Target Progress %
     const targetWeight = profile.targetWeight || 68.0;
@@ -104,7 +104,7 @@ export const Analytics = {
       progressPercent = Math.min(100, Math.max(0, Math.round(((currentWeight - startWeight) / (targetWeight - startWeight)) * 100)));
     }
 
-    const remainingKg = +(Math.abs(currentWeight - targetWeight)).toFixed(1);
+    const remainingKg = +(Math.abs(currentWeight - targetWeight)).toFixed(2);
 
     // BMI
     const bmiInfo = this.calculateBMI(currentWeight, profile.height || 175);
@@ -253,7 +253,7 @@ export const Analytics = {
       result.push({
         weekKey: key,
         label,
-        avgWeight: +(list.reduce((acc, c) => acc + c.weight, 0) / list.length).toFixed(1),
+        avgWeight: +(list.reduce((acc, c) => acc + c.weight, 0) / list.length).toFixed(2),
         delta: delta,
         count: list.length
       });

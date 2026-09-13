@@ -251,7 +251,7 @@ export const Charts = {
             callbacks: {
               label: (context) => {
                 const val = context.parsed.y;
-                return ` ${val > 0 ? '+' : ''}${val} kg`;
+                return ` ${val > 0 ? '+' : ''}${Number(val).toFixed(2)} kg`;
               }
             }
           }

@@ -783,6 +783,8 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 800;
   color: var(--text-primary);
   text-align: right;
+  white-space: nowrap;
+  letter-spacing: -0.3px;
 }
 
 .cal-delta-dot {
@@ -928,11 +930,11 @@ h1, h2, h3, h4, h5, h6 {
   background: transparent;
   border: none;
   font-family: var(--font-mono);
-  font-size: 3.5rem;
+  font-size: 3.25rem;
   font-weight: 800;
   color: var(--text-primary);
   text-align: center;
-  width: 220px;
+  width: 250px;
   outline: none;
 }
 
@@ -1301,8 +1303,10 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .cal-weight-val {
-    font-size: 0.72rem !important;
+    font-size: 0.68rem !important;
     font-weight: 800 !important;
+    letter-spacing: -0.5px !important;
+    white-space: nowrap !important;
   }
 
   /* 6. Modal Bottom Sheet on Mobile */
@@ -1319,8 +1323,8 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .weight-num-input {
-    font-size: 2.75rem;
-    width: 170px;
+    font-size: 2.5rem;
+    width: 210px;
   }
 
   .chart-wrapper {
