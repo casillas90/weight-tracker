@@ -1,9 +1,11 @@
 /**
- * storage.js - Local & Cloud Storage Engine for Weight Tracker
+ * storage.js - Multi-layer Resilient Storage Engine for Weight Tracker
+ * Supports LocalStorage + Local Backup + IndexedDB + Google Sheets Cloud Sync
  */
 
 const STORAGE_KEYS = {
   ENTRIES: 'weight_tracker_entries',
+  BACKUP: 'weight_tracker_entries_backup',
   PROFILE: 'weight_tracker_profile',
   CLOUD: 'weight_tracker_cloud_config',
   THEME: 'weight_tracker_theme'
@@ -18,22 +20,84 @@ const DEFAULT_PROFILE = {
   unit: 'kg'
 };
 
-// Automatically reset all previous sample data to 0 as requested by user
-const RESET_FLAG_KEY = 'weight_tracker_zeroed_v1';
-if (!localStorage.getItem(RESET_FLAG_KEY)) {
-  localStorage.setItem(STORAGE_KEYS.ENTRIES, JSON.stringify([]));
-  localStorage.setItem(RESET_FLAG_KEY, 'true');
+// ==========================================================================
+// IndexedDB Helper (Tertiary Storage for Zero Data Loss)
+// ==========================================================================
+const IDB_NAME = 'FitTrackDB';
+const IDB_STORE = 'weight_store';
+
+function openIDB() {
+  return new Promise((resolve, reject) => {
+    if (!window.indexedDB) {
+      resolve(null);
+      return;
+    }
+    const req = window.indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(IDB_STORE)) {
+        db.createObjectStore(IDB_STORE);
+      }
+    };
+    req.onsuccess = (e) => resolve(e.target.result);
+    req.onerror = () => resolve(null);
+  });
+}
+
+async function idbSet(key, value) {
+  try {
+    const db = await openIDB();
+    if (!db) return;
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(value, key);
+  } catch (e) {
+    console.warn('IDB write skipped', e);
+  }
+}
+
+async function idbGet(key) {
+  try {
+    const db = await openIDB();
+    if (!db) return null;
+    return new Promise((resolve) => {
+      const tx = db.transaction(IDB_STORE, 'readonly');
+      const req = tx.objectStore(IDB_STORE).get(key);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => resolve(null);
+    });
+  } catch (e) {
+    return null;
+  }
+}
+
+// Safely ensure entries key exists without wiping existing data
+try {
+  const existing = localStorage.getItem(STORAGE_KEYS.ENTRIES);
+  const backup = localStorage.getItem(STORAGE_KEYS.BACKUP);
+  if (!existing && backup) {
+    // Auto-recover from backup
+    localStorage.setItem(STORAGE_KEYS.ENTRIES, backup);
+  } else if (!existing) {
+    localStorage.setItem(STORAGE_KEYS.ENTRIES, JSON.stringify([]));
+  }
+} catch (e) {
+  console.warn('LocalStorage init note:', e);
 }
 
 export const Storage = {
   // Get all weight entries, sorted descending by date
   getEntries() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEYS.ENTRIES);
-      if (!raw) {
-        localStorage.setItem(STORAGE_KEYS.ENTRIES, JSON.stringify([]));
-        return [];
+      let raw = localStorage.getItem(STORAGE_KEYS.ENTRIES);
+      if (!raw || raw === '[]') {
+        // Attempt recovery from backup key
+        const backup = localStorage.getItem(STORAGE_KEYS.BACKUP);
+        if (backup && backup !== '[]') {
+          raw = backup;
+          localStorage.setItem(STORAGE_KEYS.ENTRIES, backup);
+        }
       }
+      if (!raw) return [];
       const data = JSON.parse(raw);
       if (!Array.isArray(data)) return [];
       return data.sort((a, b) => new Date(b.date + 'T' + (b.time || '12:00')) - new Date(a.date + 'T' + (a.time || '12:00')));
@@ -43,9 +107,30 @@ export const Storage = {
     }
   },
 
-  // Clear all entries to 0
+  // Clear all entries
   clearAllEntries() {
     localStorage.setItem(STORAGE_KEYS.ENTRIES, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.BACKUP, JSON.stringify([]));
+    idbSet('entries', []);
+  },
+
+  // Get entry for today (YYYY-MM-DD)
+  getTodayEntry() {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const entries = this.getEntries();
+    return entries.find(e => e.date === todayStr) || null;
+  },
+
+  // Delete today's entry
+  deleteTodayEntry() {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const entries = this.getEntries();
+    const target = entries.find(e => e.date === todayStr);
+    if (target) {
+      this.deleteEntry(target.id);
+      return target;
+    }
+    return null;
   },
 
   // Save or update an entry
@@ -69,16 +154,81 @@ export const Storage = {
     return entry;
   },
 
-  // Delete an entry
-  deleteEntry(id) {
-    const entries = this.getEntries().filter(e => e.id !== id);
+  // Delete an entry by ID or date
+  deleteEntry(idOrDate) {
+    const entries = this.getEntries().filter(e => e.id !== idOrDate && e.date !== idOrDate);
     this.saveAllEntries(entries);
   },
 
-  // Save array of entries directly
+  // Save array of entries across LocalStorage, Backup & IndexedDB
   saveAllEntries(entries) {
     entries.sort((a, b) => new Date(b.date + 'T' + (b.time || '12:00')) - new Date(a.date + 'T' + (a.time || '12:00')));
-    localStorage.setItem(STORAGE_KEYS.ENTRIES, JSON.stringify(entries));
+    const jsonStr = JSON.stringify(entries);
+
+    // 1. Primary LocalStorage
+    try {
+      localStorage.setItem(STORAGE_KEYS.ENTRIES, jsonStr);
+      // 2. Secondary LocalStorage Backup
+      localStorage.setItem(STORAGE_KEYS.BACKUP, jsonStr);
+    } catch (e) {
+      console.warn('LocalStorage quota or access warning:', e);
+    }
+
+    // 3. Tertiary IndexedDB
+    idbSet('entries', entries);
+
+    // 4. If running local backend server, sync to data/entries.json
+    try {
+      if (window.location.protocol.startsWith('http')) {
+        fetch('/api/entries', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: jsonStr
+        }).catch(() => {});
+      }
+    } catch (_) {}
+  },
+
+  // Asynchronous storage initialization & deep recovery
+  async initStorage() {
+    let entries = this.getEntries();
+
+    // If local is empty, try restoring from IndexedDB
+    if (entries.length === 0) {
+      const idbEntries = await idbGet('entries');
+      if (Array.isArray(idbEntries) && idbEntries.length > 0) {
+        this.saveAllEntries(idbEntries);
+        entries = idbEntries;
+        console.log('Successfully recovered entries from IndexedDB');
+      }
+    }
+
+    // If still empty, check static bundled data/entries.json (for deployed site persistence)
+    if (entries.length === 0) {
+      try {
+        const res = await fetch('data/entries.json');
+        if (res.ok) {
+          const staticData = await res.json();
+          if (Array.isArray(staticData) && staticData.length > 0) {
+            this.saveAllEntries(staticData);
+            entries = staticData;
+            console.log('Loaded initial deployment entries from data/entries.json');
+          }
+        }
+      } catch (_) {}
+    }
+
+    // Cloud auto-sync pull if configured
+    const config = this.getCloudConfig();
+    if (config.googleSheetUrl && config.autoSync) {
+      try {
+        await this.pullFromGoogleSheets();
+      } catch (e) {
+        console.warn('Initial cloud pull skipped:', e.message);
+      }
+    }
+
+    return entries;
   },
 
   // Get user profile
@@ -94,6 +244,7 @@ export const Storage = {
   // Save user profile
   saveProfile(profile) {
     localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(profile));
+    idbSet('profile', profile);
   },
 
   // Cloud configuration (Google Sheets API etc.)
@@ -110,7 +261,35 @@ export const Storage = {
     localStorage.setItem(STORAGE_KEYS.CLOUD, JSON.stringify(config));
   },
 
-  // Sync with Google Sheets Apps Script Web App
+  // Pull latest entries from Google Sheets Web App
+  async pullFromGoogleSheets() {
+    const config = this.getCloudConfig();
+    if (!config.googleSheetUrl || !config.googleSheetUrl.startsWith('https://script.google.com')) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(config.googleSheetUrl, { method: 'GET' });
+      const result = await response.json();
+      if (result && result.status === 'success' && Array.isArray(result.entries)) {
+        const localEntries = this.getEntries();
+        const map = new Map();
+        // Merge: local entries prioritized, sheets fills gaps
+        result.entries.forEach(e => map.set(e.date, e));
+        localEntries.forEach(e => map.set(e.date, e));
+        const merged = Array.from(map.values());
+        this.saveAllEntries(merged);
+        config.lastSyncedAt = new Date().toISOString();
+        this.saveCloudConfig(config);
+        return { success: true, count: merged.length };
+      }
+    } catch (err) {
+      console.warn('Google Sheets pull error:', err);
+    }
+    return null;
+  },
+
+  // Push local data to Google Sheets Apps Script Web App
   async syncWithGoogleSheets() {
     const config = this.getCloudConfig();
     if (!config.googleSheetUrl || !config.googleSheetUrl.startsWith('https://script.google.com')) {
@@ -121,10 +300,9 @@ export const Storage = {
     const profile = this.getProfile();
 
     try {
-      // POST data to Google Apps Script
       const response = await fetch(config.googleSheetUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight issues with Google Apps Script
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
           action: 'sync',
           profile: profile,
@@ -162,7 +340,6 @@ export const Storage = {
     const samples = [];
     const today = new Date();
     const startWeight = 74.8;
-    const targetWeight = 68.0;
 
     let current = startWeight;
     for (let i = 34; i >= 0; i--) {
@@ -170,14 +347,11 @@ export const Storage = {
       d.setDate(today.getDate() - i);
       const dateStr = d.toISOString().split('T')[0];
 
-      // Realistic daily fluctuation (-0.4 to +0.25 kg, with net downward slope)
       const slope = -0.075;
       const noise = (Math.random() - 0.45) * 0.4;
       current = +(current + slope + noise).toFixed(2);
 
-      // Estimate body fat % (around 22% -> 19.5%)
       const bodyFat = +(22.5 - ((startWeight - current) * 0.7) + (Math.random() * 0.4 - 0.2)).toFixed(2);
-      // Estimate muscle mass
       const muscle = +(31.2 + ((startWeight - current) * 0.1) + (Math.random() * 0.2 - 0.1)).toFixed(2);
 
       const notes = [

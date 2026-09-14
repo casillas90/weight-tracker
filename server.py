@@ -52,7 +52,53 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
         self.send_header('Pragma', 'no-cache')
         self.send_header('Expires', '0')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         super().end_headers()
+
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.end_headers()
+
+    def do_GET(self):
+        if self.path == '/api/entries':
+            data_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'entries.json')
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.end_headers()
+            if os.path.exists(data_file):
+                with open(data_file, 'rb') as f:
+                    self.wfile.write(f.read())
+            else:
+                self.wfile.write(b'[]')
+            return
+        super().do_GET()
+
+    def do_POST(self):
+        if self.path == '/api/entries':
+            length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(length)
+            try:
+                # Validate JSON
+                parsed = json.loads(body.decode('utf-8'))
+                data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+                os.makedirs(data_dir, exist_ok=True)
+                data_file = os.path.join(data_dir, 'entries.json')
+                with open(data_file, 'w', encoding='utf-8') as f:
+                    json.dump(parsed, f, ensure_ascii=False, indent=2)
+
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(json.dumps({"status": "success", "count": len(parsed)}).encode('utf-8'))
+            except Exception as e:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(json.dumps({"status": "error", "message": str(e)}).encode('utf-8'))
+            return
+        super().do_POST()
 
 def cleanup():
     global tunnel_process

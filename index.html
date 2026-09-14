@@ -24,7 +24,7 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
   <!-- Core Stylesheet -->
-  <link rel="stylesheet" href="css/styles.css?v=20260913_4">
+  <link rel="stylesheet" href="css/styles.css?v=20260914_1">
 </head>
 <body>
 
@@ -276,6 +276,7 @@
             <button class="btn btn-outline cal-nav-btn" id="btnCalPrev" aria-label="이전달">◀</button>
             <button class="btn btn-outline cal-nav-btn" id="btnCalToday">오늘</button>
             <button class="btn btn-outline cal-nav-btn" id="btnCalNext" aria-label="다음달">▶</button>
+            <button class="btn btn-outline cal-nav-btn btn-cal-delete-today" id="btnCalDeleteToday" title="오늘 체중 기록 삭제">🗑️ 오늘 삭제</button>
           </div>
         </div>
 
@@ -593,9 +594,14 @@
           <input type="text" id="recordNoteInput" class="form-input" placeholder="식단, 컨디션 또는 운동 기록 (선택)">
         </div>
 
-        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.875rem; font-size: 1rem; margin-top: 0.5rem;">
-          기록 저장하기
-        </button>
+        <div class="modal-actions-group" style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
+          <button type="button" class="btn btn-outline" id="btnModalDeleteRecord" style="display: none; color: var(--accent-rose); border-color: rgba(244, 63, 94, 0.4); flex-shrink: 0; padding: 0.875rem 1rem;">
+            🗑️ 당일 기록 삭제
+          </button>
+          <button type="submit" class="btn btn-primary" id="btnModalSubmitRecord" style="flex: 1; padding: 0.875rem; font-size: 1rem;">
+            기록 저장하기
+          </button>
+        </div>
       </form>
     </div>
   </div>
@@ -627,6 +633,6 @@
   </div>
 
   <!-- App Bootstrap JS -->
-  <script type="module" src="js/app.js?v=20260913_4"></script>
+  <script type="module" src="js/app.js?v=20260914_1"></script>
 </body>
 </html>

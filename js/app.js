@@ -10,9 +10,10 @@ let currentFilter = '30D';
 let currentCalendarDate = new Date();
 let editingEntryId = null;
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
   initEventListeners();
+  await Storage.initStorage();
   refreshApp();
 });
 
@@ -103,6 +104,15 @@ function initEventListeners() {
   document.getElementById('btnCalToday')?.addEventListener('click', () => {
     currentCalendarDate = new Date();
     renderCalendar();
+  });
+  document.getElementById('btnCalDeleteToday')?.addEventListener('click', handleCalDeleteToday);
+
+  // Dynamic entry loading on modal date change
+  document.getElementById('recordDateInput')?.addEventListener('change', (e) => {
+    const selectedDate = e.target.value;
+    const entries = Storage.getEntries();
+    const existing = entries.find(item => item.date === selectedDate);
+    updateModalFieldsForEntry(selectedDate, existing);
   });
 
   // Profile Form Submit
@@ -376,6 +386,19 @@ function renderCalendar() {
 
     grid.appendChild(cell);
   }
+
+  // Update today delete button in calendar header
+  const btnCalDeleteToday = document.getElementById('btnCalDeleteToday');
+  if (btnCalDeleteToday) {
+    const todayEntry = Storage.getTodayEntry();
+    if (todayEntry) {
+      btnCalDeleteToday.classList.remove('has-no-entry');
+      btnCalDeleteToday.title = `오늘 기록(${Number(todayEntry.weight).toFixed(2)}kg) 삭제`;
+    } else {
+      btnCalDeleteToday.classList.add('has-no-entry');
+      btnCalDeleteToday.title = '오늘 입력된 기록이 없습니다';
+    }
+  }
 }
 
 // ==========================================================================
@@ -437,32 +460,54 @@ function renderTable() {
 // ==========================================================================
 // Modal Handlers (Record Form)
 // ==========================================================================
-function openRecordModal(defaultDate = null, existingEntry = null) {
-  const modal = document.getElementById('recordModalBackdrop');
-  if (!modal) return;
-
-  editingEntryId = existingEntry ? existingEntry.id : null;
-  const title = document.getElementById('modalTitle');
-  if (title) title.textContent = existingEntry ? '체중 기록 수정' : '오늘 체중 기록';
-
-  const dateInput = document.getElementById('recordDateInput');
+function updateModalFieldsForEntry(targetDate, existingEntry) {
   const weightInput = document.getElementById('recordWeightInput');
   const timeOfDaySelect = document.getElementById('recordTimeOfDay');
   const bodyFatInput = document.getElementById('recordBodyFatInput');
   const muscleInput = document.getElementById('recordMuscleInput');
   const noteInput = document.getElementById('recordNoteInput');
-
+  const deleteBtn = document.getElementById('btnModalDeleteRecord');
+  const submitBtn = document.getElementById('btnModalSubmitRecord');
+  const modalTitle = document.getElementById('modalTitle');
   const todayStr = new Date().toISOString().split('T')[0];
-  dateInput.value = defaultDate || existingEntry?.date || todayStr;
+
+  editingEntryId = existingEntry ? existingEntry.id : null;
 
   if (existingEntry) {
+    if (modalTitle) modalTitle.textContent = targetDate === todayStr ? '오늘 체중 기록 수정' : `${targetDate} 체중 기록 수정`;
+    if (submitBtn) submitBtn.textContent = '수정내용 저장하기';
     weightInput.value = Number(existingEntry.weight).toFixed(2);
     timeOfDaySelect.value = existingEntry.timeOfDay || 'morning';
     bodyFatInput.value = existingEntry.bodyFat !== null && existingEntry.bodyFat !== undefined && existingEntry.bodyFat !== '' ? Number(existingEntry.bodyFat).toFixed(2) : '';
     muscleInput.value = existingEntry.muscleMass !== null && existingEntry.muscleMass !== undefined && existingEntry.muscleMass !== '' ? Number(existingEntry.muscleMass).toFixed(2) : '';
     noteInput.value = existingEntry.note || '';
+
+    // Tags
+    document.querySelectorAll('.tag-chip').forEach(c => c.classList.remove('selected'));
+    if (existingEntry.tags) {
+      document.querySelectorAll('.tag-chip').forEach(c => {
+        if (existingEntry.tags.includes(c.textContent.trim())) {
+          c.classList.add('selected');
+        }
+      });
+    }
+
+    if (deleteBtn) {
+      deleteBtn.style.display = 'inline-flex';
+      deleteBtn.textContent = targetDate === todayStr ? '🗑️ 당일 기록 삭제' : '🗑️ 이 기록 삭제';
+      deleteBtn.onclick = () => {
+        const dateName = targetDate === todayStr ? '오늘' : targetDate;
+        if (confirm(`${dateName} 기록(${Number(existingEntry.weight).toFixed(2)}kg)을 정말 삭제하시겠습니까?`)) {
+          Storage.deleteEntry(existingEntry.id || targetDate);
+          closeRecordModal();
+          refreshApp();
+          alert(`${dateName}의 체중 기록이 삭제되었습니다.`);
+        }
+      };
+    }
   } else {
-    // Default weight from latest entry or profile
+    if (modalTitle) modalTitle.textContent = targetDate === todayStr ? '오늘 체중 기록' : `${targetDate} 체중 기록`;
+    if (submitBtn) submitBtn.textContent = '기록 저장하기';
     const entries = Storage.getEntries();
     const latest = entries[0];
     const defaultWeight = latest ? latest.weight : Storage.getProfile().initialWeight || 72.0;
@@ -471,17 +516,41 @@ function openRecordModal(defaultDate = null, existingEntry = null) {
     bodyFatInput.value = latest?.bodyFat ? Number(latest.bodyFat).toFixed(2) : '';
     muscleInput.value = latest?.muscleMass ? Number(latest.muscleMass).toFixed(2) : '';
     noteInput.value = '';
-  }
 
-  // Clear tags
-  document.querySelectorAll('.tag-chip').forEach(c => c.classList.remove('selected'));
-  if (existingEntry?.tags) {
-    document.querySelectorAll('.tag-chip').forEach(c => {
-      if (existingEntry.tags.includes(c.textContent.trim())) {
-        c.classList.add('selected');
-      }
-    });
+    document.querySelectorAll('.tag-chip').forEach(c => c.classList.remove('selected'));
+
+    if (deleteBtn) {
+      deleteBtn.style.display = 'none';
+      deleteBtn.onclick = null;
+    }
   }
+}
+
+function handleCalDeleteToday() {
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayEntry = Storage.getTodayEntry();
+  if (!todayEntry) {
+    alert(`오늘(${todayStr}) 입력된 체중 기록이 없습니다.`);
+    return;
+  }
+  if (confirm(`오늘(${todayStr}) 체중 기록 (${Number(todayEntry.weight).toFixed(2)}kg)을 정말 삭제하시겠습니까?`)) {
+    Storage.deleteTodayEntry();
+    refreshApp();
+    alert('오늘의 체중 기록이 정상적으로 삭제되었습니다.');
+  }
+}
+
+function openRecordModal(defaultDate = null, existingEntry = null) {
+  const modal = document.getElementById('recordModalBackdrop');
+  if (!modal) return;
+
+  const dateInput = document.getElementById('recordDateInput');
+  const todayStr = new Date().toISOString().split('T')[0];
+  const targetDate = defaultDate || existingEntry?.date || todayStr;
+  dateInput.value = targetDate;
+
+  const entry = existingEntry || Storage.getEntries().find(e => e.date === targetDate);
+  updateModalFieldsForEntry(targetDate, entry);
 
   modal.classList.add('open');
 }
