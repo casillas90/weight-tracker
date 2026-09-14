@@ -9,7 +9,7 @@ import { Charts } from './charts.js';
 let currentFilter = '30D';
 let currentCalendarDate = new Date();
 let editingEntryId = null;
-const CURRENT_APP_VERSION = '20260914_2';
+const CURRENT_APP_VERSION = '20260914_3';
 
 document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
