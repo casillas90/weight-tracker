@@ -105,7 +105,6 @@ function initEventListeners() {
     currentCalendarDate = new Date();
     renderCalendar();
   });
-  document.getElementById('btnCalDeleteToday')?.addEventListener('click', handleCalDeleteToday);
 
   // Dynamic entry loading on modal date change
   document.getElementById('recordDateInput')?.addEventListener('change', (e) => {
@@ -386,19 +385,6 @@ function renderCalendar() {
 
     grid.appendChild(cell);
   }
-
-  // Update today delete button in calendar header
-  const btnCalDeleteToday = document.getElementById('btnCalDeleteToday');
-  if (btnCalDeleteToday) {
-    const todayEntry = Storage.getTodayEntry();
-    if (todayEntry) {
-      btnCalDeleteToday.classList.remove('has-no-entry');
-      btnCalDeleteToday.title = `오늘 기록(${Number(todayEntry.weight).toFixed(2)}kg) 삭제`;
-    } else {
-      btnCalDeleteToday.classList.add('has-no-entry');
-      btnCalDeleteToday.title = '오늘 입력된 기록이 없습니다';
-    }
-  }
 }
 
 // ==========================================================================
@@ -467,6 +453,7 @@ function updateModalFieldsForEntry(targetDate, existingEntry) {
   const muscleInput = document.getElementById('recordMuscleInput');
   const noteInput = document.getElementById('recordNoteInput');
   const deleteBtn = document.getElementById('btnModalDeleteRecord');
+  const headerDeleteBtn = document.getElementById('btnModalHeaderDelete');
   const submitBtn = document.getElementById('btnModalSubmitRecord');
   const modalTitle = document.getElementById('modalTitle');
   const todayStr = new Date().toISOString().split('T')[0];
@@ -492,18 +479,24 @@ function updateModalFieldsForEntry(targetDate, existingEntry) {
       });
     }
 
+    const doDelete = () => {
+      const dateDisplay = targetDate === todayStr ? `오늘(${targetDate})` : targetDate;
+      if (confirm(`${dateDisplay} 체중 기록(${Number(existingEntry.weight).toFixed(2)}kg)을 정말 삭제하시겠습니까?`)) {
+        Storage.deleteEntry(existingEntry.id || targetDate);
+        closeRecordModal();
+        refreshApp();
+        alert(`${dateDisplay}의 체중 기록이 삭제되었습니다.`);
+      }
+    };
+
     if (deleteBtn) {
       deleteBtn.style.display = 'inline-flex';
-      deleteBtn.textContent = targetDate === todayStr ? '🗑️ 당일 기록 삭제' : '🗑️ 이 기록 삭제';
-      deleteBtn.onclick = () => {
-        const dateName = targetDate === todayStr ? '오늘' : targetDate;
-        if (confirm(`${dateName} 기록(${Number(existingEntry.weight).toFixed(2)}kg)을 정말 삭제하시겠습니까?`)) {
-          Storage.deleteEntry(existingEntry.id || targetDate);
-          closeRecordModal();
-          refreshApp();
-          alert(`${dateName}의 체중 기록이 삭제되었습니다.`);
-        }
-      };
+      deleteBtn.textContent = '🗑️ 기록 삭제';
+      deleteBtn.onclick = doDelete;
+    }
+    if (headerDeleteBtn) {
+      headerDeleteBtn.style.display = 'inline-flex';
+      headerDeleteBtn.onclick = doDelete;
     }
   } else {
     if (modalTitle) modalTitle.textContent = targetDate === todayStr ? '오늘 체중 기록' : `${targetDate} 체중 기록`;
@@ -523,20 +516,10 @@ function updateModalFieldsForEntry(targetDate, existingEntry) {
       deleteBtn.style.display = 'none';
       deleteBtn.onclick = null;
     }
-  }
-}
-
-function handleCalDeleteToday() {
-  const todayStr = new Date().toISOString().split('T')[0];
-  const todayEntry = Storage.getTodayEntry();
-  if (!todayEntry) {
-    alert(`오늘(${todayStr}) 입력된 체중 기록이 없습니다.`);
-    return;
-  }
-  if (confirm(`오늘(${todayStr}) 체중 기록 (${Number(todayEntry.weight).toFixed(2)}kg)을 정말 삭제하시겠습니까?`)) {
-    Storage.deleteTodayEntry();
-    refreshApp();
-    alert('오늘의 체중 기록이 정상적으로 삭제되었습니다.');
+    if (headerDeleteBtn) {
+      headerDeleteBtn.style.display = 'none';
+      headerDeleteBtn.onclick = null;
+    }
   }
 }
 

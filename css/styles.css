@@ -723,21 +723,10 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
 }
 
-.btn-cal-delete-today {
-  color: var(--accent-rose) !important;
-  border-color: rgba(244, 63, 94, 0.4) !important;
-  background: rgba(244, 63, 94, 0.06);
-  transition: all var(--transition-fast);
-}
-
-.btn-cal-delete-today:hover {
-  background: rgba(244, 63, 94, 0.18) !important;
+#btnModalHeaderDelete:hover,
+#btnModalDeleteRecord:hover {
+  background: rgba(244, 63, 94, 0.2) !important;
   border-color: var(--accent-rose) !important;
-}
-
-.btn-cal-delete-today.has-no-entry {
-  opacity: 0.45;
-  cursor: pointer;
 }
 
 .calendar-grid {
@@ -1288,16 +1277,10 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .cal-nav-btn {
-    padding: 0.35rem 0.5rem !important;
-    font-size: 0.75rem !important;
-    min-width: 32px !important;
+    padding: 0.35rem 0.6rem !important;
+    font-size: 0.8rem !important;
+    min-width: 34px !important;
     height: 32px !important;
-  }
-
-  .btn-cal-delete-today {
-    padding: 0.35rem 0.45rem !important;
-    font-size: 0.72rem !important;
-    white-space: nowrap !important;
   }
 
   .calendar-grid {
