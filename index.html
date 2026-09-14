@@ -59,11 +59,23 @@
 
         <!-- Theme Toggle -->
         <button class="btn-icon" id="themeToggleBtn" aria-label="테마 전환">☀️</button>
+
+        <!-- App Reload Button (for iOS Home Screen / PWA) -->
+        <button class="btn-icon" id="btnAppReload" title="최신 버전으로 새로고침" aria-label="새로고침">🔄</button>
       </div>
     </div>
   </header>
 
   <main class="app-container">
+
+    <!-- Update Alert Banner for iOS Standalone / Cache Busting -->
+    <div id="updateBanner" class="update-banner" style="display: none;">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span>🚀</span>
+        <span style="font-size: 0.8125rem; font-weight: 600;">최신 업데이트가 있습니다!</span>
+      </div>
+      <button class="btn btn-primary" id="btnApplyUpdate" style="padding: 0.3rem 0.7rem; font-size: 0.75rem; font-weight: 700;">지금 갱신</button>
+    </div>
 
     <!-- ==========================================================================
          Hero Overview Stats Cards

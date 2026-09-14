@@ -9,12 +9,14 @@ import { Charts } from './charts.js';
 let currentFilter = '30D';
 let currentCalendarDate = new Date();
 let editingEntryId = null;
+const CURRENT_APP_VERSION = '20260914_2';
 
 document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
   initEventListeners();
   await Storage.initStorage();
   refreshApp();
+  checkForUpdates();
 });
 
 // ==========================================================================
@@ -44,11 +46,41 @@ function updateThemeIcon(theme) {
 }
 
 // ==========================================================================
+// iOS Home Screen PWA & Auto Update Management
+// ==========================================================================
+function reloadAppForcefully() {
+  const btn = document.getElementById('btnAppReload');
+  if (btn) btn.style.transform = 'rotate(360deg)';
+  const url = new URL(window.location.href);
+  url.searchParams.set('t', Date.now().toString());
+  window.location.href = url.toString();
+}
+
+async function checkForUpdates() {
+  try {
+    const res = await fetch(`version.json?t=${Date.now()}`, { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.version && data.version !== CURRENT_APP_VERSION) {
+        const banner = document.getElementById('updateBanner');
+        if (banner) {
+          banner.style.display = 'flex';
+          document.getElementById('btnApplyUpdate')?.addEventListener('click', reloadAppForcefully);
+        }
+      }
+    }
+  } catch (_) {}
+}
+
+// ==========================================================================
 // Event Listeners & UI Binding
 // ==========================================================================
 function initEventListeners() {
   // Theme Toggle
   document.getElementById('themeToggleBtn')?.addEventListener('click', toggleTheme);
+
+  // App Reload (Force Refresh for iOS Web Clip / PWA)
+  document.getElementById('btnAppReload')?.addEventListener('click', reloadAppForcefully);
 
   // Tabs Navigation
   document.querySelectorAll('.tab-btn').forEach(btn => {
