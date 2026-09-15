@@ -84,6 +84,23 @@ try {
   console.warn('LocalStorage init note:', e);
 }
 
+export function getLocalDateString(d = new Date()) {
+  const dateObj = typeof d === 'string' ? new Date(d) : d;
+  const year = dateObj.getFullYear();
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function sortEntriesDesc(entries) {
+  return entries.sort((a, b) => {
+    if (b.date !== a.date) {
+      return b.date.localeCompare(a.date);
+    }
+    return (b.time || '12:00').localeCompare(a.time || '12:00');
+  });
+}
+
 export const Storage = {
   // Get all weight entries, sorted descending by date
   getEntries() {
@@ -100,7 +117,7 @@ export const Storage = {
       if (!raw) return [];
       const data = JSON.parse(raw);
       if (!Array.isArray(data)) return [];
-      return data.sort((a, b) => new Date(b.date + 'T' + (b.time || '12:00')) - new Date(a.date + 'T' + (a.time || '12:00')));
+      return sortEntriesDesc(data);
     } catch (e) {
       console.error('Failed to load entries from localStorage', e);
       return [];
@@ -114,20 +131,20 @@ export const Storage = {
     idbSet('entries', []);
   },
 
-  // Get entry for today (YYYY-MM-DD)
+  // Get entry for today (YYYY-MM-DD in local time)
   getTodayEntry() {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalDateString();
     const entries = this.getEntries();
     return entries.find(e => e.date === todayStr) || null;
   },
 
   // Delete today's entry
   deleteTodayEntry() {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalDateString();
     const entries = this.getEntries();
     const target = entries.find(e => e.date === todayStr);
     if (target) {
-      this.deleteEntry(target.id);
+      this.deleteEntry(target.id || target.date);
       return target;
     }
     return null;
@@ -136,7 +153,7 @@ export const Storage = {
   // Save or update an entry
   saveEntry(entry) {
     const entries = this.getEntries();
-    const existingIndex = entries.findIndex(e => e.id === entry.id || e.date === entry.date);
+    const existingIndex = entries.findIndex(e => (entry.id && e.id === entry.id) || e.date === entry.date);
 
     if (!entry.id) {
       entry.id = 'entry_' + Date.now();
@@ -162,7 +179,7 @@ export const Storage = {
 
   // Save array of entries across LocalStorage, Backup & IndexedDB
   saveAllEntries(entries) {
-    entries.sort((a, b) => new Date(b.date + 'T' + (b.time || '12:00')) - new Date(a.date + 'T' + (a.time || '12:00')));
+    sortEntriesDesc(entries);
     const jsonStr = JSON.stringify(entries);
 
     // 1. Primary LocalStorage
@@ -179,7 +196,8 @@ export const Storage = {
 
     // 4. If running local backend server, sync to data/entries.json
     try {
-      if (window.location.protocol.startsWith('http')) {
+      const isLocalServer = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      if (isLocalServer) {
         fetch('/api/entries', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -345,7 +363,7 @@ export const Storage = {
     for (let i = 34; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = getLocalDateString(d);
 
       const slope = -0.075;
       const noise = (Math.random() - 0.45) * 0.4;

@@ -2,14 +2,14 @@
  * app.js - Main Application Controller for Weight Tracker & Analytics
  */
 
-import { Storage } from './storage.js';
+import { Storage, getLocalDateString } from './storage.js';
 import { Analytics } from './analytics.js';
 import { Charts } from './charts.js';
 
 let currentFilter = '30D';
 let currentCalendarDate = new Date();
 let editingEntryId = null;
-const CURRENT_APP_VERSION = '20260914_3';
+const CURRENT_APP_VERSION = '20260916_1';
 
 document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
@@ -384,7 +384,7 @@ function renderCalendar() {
     grid.appendChild(cell);
   }
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalDateString();
 
   // Current month days
   for (let d = 1; d <= totalDays; d++) {
@@ -488,7 +488,7 @@ function updateModalFieldsForEntry(targetDate, existingEntry) {
   const headerDeleteBtn = document.getElementById('btnModalHeaderDelete');
   const submitBtn = document.getElementById('btnModalSubmitRecord');
   const modalTitle = document.getElementById('modalTitle');
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalDateString();
 
   editingEntryId = existingEntry ? existingEntry.id : null;
 
@@ -560,7 +560,7 @@ function openRecordModal(defaultDate = null, existingEntry = null) {
   if (!modal) return;
 
   const dateInput = document.getElementById('recordDateInput');
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalDateString();
   const targetDate = defaultDate || existingEntry?.date || todayStr;
   dateInput.value = targetDate;
 
@@ -766,7 +766,7 @@ function exportCSVFile() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `weight_records_${new Date().toISOString().split('T')[0]}.csv`;
+  a.download = `weight_records_${getLocalDateString()}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -777,7 +777,7 @@ function exportJSONFile() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `weight_tracker_backup_${new Date().toISOString().split('T')[0]}.json`;
+  a.download = `weight_tracker_backup_${getLocalDateString()}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }

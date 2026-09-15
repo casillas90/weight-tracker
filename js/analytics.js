@@ -2,6 +2,8 @@
  * analytics.js - Statistical & Predictive Engine for Weight Tracking
  */
 
+import { getLocalDateString } from './storage.js';
+
 export const Analytics = {
   // Calculate BMI and Korean medical classification
   calculateBMI(weightKg, heightCm) {
@@ -195,17 +197,18 @@ export const Analytics = {
     let streak = 0;
     const checkDate = new Date();
 
-    // Check today or yesterday
-    const todayStr = checkDate.toISOString().split('T')[0];
-    checkDate.setDate(checkDate.getDate() - 1);
-    const yesterdayStr = checkDate.toISOString().split('T')[0];
+    // Check today or yesterday in local time
+    const todayStr = getLocalDateString(checkDate);
+    const yesterday = new Date(checkDate);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = getLocalDateString(yesterday);
 
-    let currentCheck = loggedDates.has(todayStr) ? new Date() : (loggedDates.has(yesterdayStr) ? checkDate : null);
+    let currentCheck = loggedDates.has(todayStr) ? new Date() : (loggedDates.has(yesterdayStr) ? yesterday : null);
 
     if (!currentCheck) return 0;
 
     while (true) {
-      const dateStr = currentCheck.toISOString().split('T')[0];
+      const dateStr = getLocalDateString(currentCheck);
       if (loggedDates.has(dateStr)) {
         streak++;
         currentCheck.setDate(currentCheck.getDate() - 1);
@@ -219,17 +222,17 @@ export const Analytics = {
 
   // Group by weeks for weekly delta bar chart
   getWeeklyAggregates(entries) {
-    const sorted = [...entries].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
     if (sorted.length === 0) return [];
 
     const weeks = {};
 
     sorted.forEach(e => {
-      const d = new Date(e.date);
+      const d = new Date(e.date + 'T12:00:00');
       // Get Monday of this week
       const day = d.getDay() || 7;
       d.setDate(d.getDate() - day + 1);
-      const weekKey = d.toISOString().split('T')[0];
+      const weekKey = getLocalDateString(d);
 
       if (!weeks[weekKey]) {
         weeks[weekKey] = [];
