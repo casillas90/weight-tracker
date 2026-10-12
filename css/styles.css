@@ -169,21 +169,10 @@ h1, h2, h3, h4 { font-weight: 700; letter-spacing: -0.02em; }
   position: sticky;
   top: 0;
   z-index: 50;
-  /* 아이폰 상태바(시계·배터리) 아래로 한 칸 내려서 배치, 반투명/블러 없이 불투명 배경 */
+  /* 아이폰 상태바(시계·배터리)와 겹치지 않도록 아래로 내려 배치, 블러/반투명 없이 불투명 배경 */
   padding-top: calc(var(--safe-top) + 6px);
   background: var(--bg);
   border-bottom: 1px solid var(--border);
-}
-
-/* 아이폰 홈 화면 앱: 상태바 글자가 흰색이라 라이트 모드에서도 상태바 영역은 어둡게 깔아 준다 */
-.app-header::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: var(--safe-top);
-  background: #0c0d10;
 }
 
 .header-inner {
@@ -1257,6 +1246,9 @@ input[type="date"].form-input { display: flex; align-items: center; }
 }
 
 @media (max-width: 767px) {
+  /* 모바일: 상단을 한 칸 더 내림 (사파리 상단 블러 영역과 겹치지 않도록 최소 여백 확보) */
+  .app-header { padding-top: calc(max(var(--safe-top), 24px) + 16px); }
+
   body { padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 1.5rem); }
 
   .main { padding-top: 1rem; }
@@ -1286,7 +1278,7 @@ input[type="date"].form-input { display: flex; align-items: center; }
 
   .calendar-cell { min-height: 0; border-radius: 8px; }
   .calendar-grid { gap: 3px; }
-  .cal-weight-val { font-size: 0.625rem; }
+  .cal-weight-val { font-size: 0.625rem; letter-spacing: -0.04em; }
 
   /* Bottom navigation */
   .bottom-nav {
@@ -1300,9 +1292,7 @@ input[type="date"].form-input { display: flex; align-items: center; }
     align-items: center;
     height: calc(var(--nav-h) + var(--safe-bottom));
     padding: 0 max(8px, env(safe-area-inset-left)) var(--safe-bottom);
-    background: color-mix(in srgb, var(--surface) 88%, transparent);
-    -webkit-backdrop-filter: saturate(180%) blur(18px);
-    backdrop-filter: saturate(180%) blur(18px);
+    background: var(--surface);
     border-top: 1px solid var(--border);
   }
 

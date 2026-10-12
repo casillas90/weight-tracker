@@ -2,14 +2,14 @@
  * app.js - Main Application Controller for Weight Tracker & Analytics
  */
 
-import { Storage, getLocalDateString, parseLocalDate } from './storage.js?v=20261012_3';
-import { Analytics } from './analytics.js?v=20261012_3';
-import { Charts } from './charts.js?v=20261012_3';
+import { Storage, getLocalDateString, parseLocalDate } from './storage.js?v=20261012_4';
+import { Analytics } from './analytics.js?v=20261012_4';
+import { Charts } from './charts.js?v=20261012_4';
 
 let currentFilter = '30D';
 let currentCalendarDate = new Date();
 let editingEntryId = null;
-const CURRENT_APP_VERSION = '20261012_3';
+const CURRENT_APP_VERSION = '20261012_4';
 
 document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
@@ -503,7 +503,7 @@ function renderCalendar() {
       }
       const wVal = document.createElement('span');
       wVal.className = 'cal-weight-val';
-      wVal.textContent = fmt(entry.weight, 1);
+      wVal.textContent = fmt(entry.weight);
       cell.appendChild(wVal);
       cell.setAttribute('aria-label', `${dateStr} ${fmt(entry.weight)}kg${entry.note ? ' · ' + entry.note : ''}`);
       cell.title = `${fmt(entry.weight)}kg${entry.note ? ' · ' + entry.note : ''}`;
