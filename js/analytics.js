@@ -2,7 +2,7 @@
  * analytics.js - Statistical & Predictive Engine for Weight Tracking
  */
 
-import { getLocalDateString } from './storage.js';
+import { getLocalDateString, parseLocalDate } from './storage.js?v=20261012_2';
 
 export const Analytics = {
   // Calculate BMI and Korean medical classification
@@ -50,20 +50,25 @@ export const Analytics = {
     };
   },
 
-  // Calculate N-day Moving Averages
+  // Calculate N-day Moving Averages (기록 개수가 아닌 달력 기준 N일 구간 평균)
   calculateMovingAverages(entries, windowSize = 7) {
-    // Sort chronologically (oldest first)
-    const sorted = [...entries].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
     const result = [];
+    let start = 0;
+    let sum = 0;
 
     for (let i = 0; i < sorted.length; i++) {
-      const window = sorted.slice(Math.max(0, i - windowSize + 1), i + 1);
-      const sum = window.reduce((acc, curr) => acc + curr.weight, 0);
-      const avg = +(sum / window.length).toFixed(2);
+      sum += sorted[i].weight;
+      const windowStart = parseLocalDate(sorted[i].date);
+      windowStart.setDate(windowStart.getDate() - (windowSize - 1));
+      while (parseLocalDate(sorted[start].date) < windowStart) {
+        sum -= sorted[start].weight;
+        start++;
+      }
       result.push({
         date: sorted[i].date,
         weight: sorted[i].weight,
-        sma: avg
+        sma: +(sum / (i - start + 1)).toFixed(2)
       });
     }
 
@@ -77,7 +82,7 @@ export const Analytics = {
     }
 
     // Sorted chronological
-    const sortedChrono = [...entries].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const sortedChrono = [...entries].sort((a, b) => a.date.localeCompare(b.date));
     const latest = sortedChrono[sortedChrono.length - 1];
     const previous = sortedChrono.length > 1 ? sortedChrono[sortedChrono.length - 2] : null;
     const initial = sortedChrono[0];
@@ -90,8 +95,8 @@ export const Analytics = {
     const totalDelta = +(currentWeight - initial.weight).toFixed(2);
 
     // 7-day Moving Average for latest day
-    const last7Days = sortedChrono.slice(-7);
-    const avg7Days = +(last7Days.reduce((sum, e) => sum + e.weight, 0) / last7Days.length).toFixed(2);
+    const movingAvgs = this.calculateMovingAverages(sortedChrono, 7);
+    const avg7Days = movingAvgs[movingAvgs.length - 1].sma;
 
     // Target Progress %
     const targetWeight = profile.targetWeight || 68.0;
@@ -149,7 +154,7 @@ export const Analytics = {
     const firstRecent = recent[0];
     const lastRecent = recent[recent.length - 1];
 
-    const dayDiff = Math.max(1, Math.round((new Date(lastRecent.date) - new Date(firstRecent.date)) / (1000 * 60 * 60 * 24)));
+    const dayDiff = Math.max(1, Math.round((parseLocalDate(lastRecent.date) - parseLocalDate(firstRecent.date)) / (1000 * 60 * 60 * 24)));
     const weightDiff = lastRecent.weight - firstRecent.weight; // negative if losing weight
 
     // Daily rate of change
@@ -170,7 +175,7 @@ export const Analytics = {
         weeklyRate,
         estimatedDate: estimatedDateStr,
         daysRemaining: daysNeeded,
-        message: `최근 2주 추세(주당 ${Math.abs(weeklyRate)}kg 감량) 지속 시, 약 <strong>${daysNeeded}일 뒤(${estimatedDateStr})</strong> 목표 달성 예상! 🎉`
+        message: `최근 2주 추세(주당 ${Math.abs(weeklyRate)}kg ${weeklyRate < 0 ? '감량' : '증량'}) 지속 시, 약 <strong>${daysNeeded}일 뒤(${estimatedDateStr})</strong> 목표 달성 예상! 🎉`
       };
     } else if (Math.abs(neededDiff) <= 0.2) {
       return {
@@ -228,7 +233,7 @@ export const Analytics = {
     const weeks = {};
 
     sorted.forEach(e => {
-      const d = new Date(e.date + 'T12:00:00');
+      const d = parseLocalDate(e.date);
       // Get Monday of this week
       const day = d.getDay() || 7;
       d.setDate(d.getDate() - day + 1);
@@ -250,8 +255,8 @@ export const Analytics = {
       const prevWeekEnd = idx > 0 ? weeks[keys[idx - 1]][weeks[keys[idx - 1]].length - 1].weight : startW;
       const delta = +(endW - prevWeekEnd).toFixed(2);
 
-      const d = new Date(key);
-      const label = `${d.getMonth() + 1}월 ${Math.ceil(d.getDate() / 7)}주차`;
+      const d = parseLocalDate(key);
+      const label = `${d.getMonth() + 1}/${d.getDate()}주`;
 
       result.push({
         weekKey: key,

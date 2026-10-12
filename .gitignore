@@ -2,3 +2,4 @@
 cloudflared
 tunnel_info.json
 *.tgz
+data/entries.json

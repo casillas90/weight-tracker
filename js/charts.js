@@ -2,7 +2,62 @@
  * charts.js - Chart.js Visualizations for Weight Tracker & Analytics
  */
 
-import { Analytics } from './analytics.js';
+import { Analytics } from './analytics.js?v=20261012_2';
+import { parseLocalDate } from './storage.js?v=20261012_2';
+
+
+const FONT_FAMILY = "'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif";
+
+function cssVar(name, fallback) {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+}
+
+function palette() {
+  return {
+    weight: cssVar('--chart-weight', '#14b8a6'),
+    weightFill: cssVar('--chart-weight-fill', 'rgba(20, 184, 166, 0.18)'),
+    trend: cssVar('--chart-trend', '#6366f1'),
+    target: cssVar('--chart-target', '#f59e0b'),
+    good: cssVar('--good', '#10b981'),
+    bad: cssVar('--bad', '#f43f5e'),
+    fat: cssVar('--chart-fat', '#f59e0b'),
+    muscle: cssVar('--chart-muscle', '#6366f1'),
+    grid: cssVar('--chart-grid', 'rgba(127, 127, 127, 0.12)'),
+    text: cssVar('--text-muted', '#8a8f98'),
+    surface: cssVar('--surface', '#ffffff'),
+    tooltipBg: cssVar('--tooltip-bg', 'rgba(17, 24, 39, 0.95)'),
+    tooltipText: cssVar('--tooltip-text', '#f9fafb')
+  };
+}
+
+// 데이터가 없을 때 캔버스 대신 안내 문구를 보여준다
+function setEmpty(canvas, message) {
+  const wrap = canvas.parentElement;
+  if (!wrap) return;
+  if (message) {
+    wrap.dataset.empty = message;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  } else {
+    delete wrap.dataset.empty;
+  }
+}
+
+function tooltipBase(c) {
+  return {
+    backgroundColor: c.tooltipBg,
+    titleColor: c.tooltipText,
+    bodyColor: c.tooltipText,
+    borderWidth: 0,
+    padding: 10,
+    cornerRadius: 10,
+    boxPadding: 4,
+    usePointStyle: true,
+    titleFont: { family: FONT_FAMILY, weight: '600', size: 12 },
+    bodyFont: { family: FONT_FAMILY, size: 12 }
+  };
+}
 
 let trendChartInstance = null;
 let weeklyDeltaChartInstance = null;
@@ -12,107 +67,87 @@ export const Charts = {
   // Initialize or update main trend chart
   renderTrendChart(canvasId, entries, profile, timeFilter = '30D') {
     const canvas = document.getElementById(canvasId);
-    if (!canvas) return;
+    if (!canvas || !window.Chart) return;
+    const c = palette();
 
-    const ctx = canvas.getContext('2d');
-    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
-
-    // 1. Filter entries by time range
     const filteredEntries = this.filterEntriesByTime(entries, timeFilter);
+    if (trendChartInstance) {
+      trendChartInstance.destroy();
+      trendChartInstance = null;
+    }
     if (filteredEntries.length === 0) {
-      if (trendChartInstance) {
-        trendChartInstance.destroy();
-        trendChartInstance = null;
-      }
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.save();
-      ctx.font = '600 14px Plus Jakarta Sans, sans-serif';
-      ctx.fillStyle = isDark ? '#6b7280' : '#94a3b8';
-      ctx.textAlign = 'center';
-      ctx.fillText('아직 기록된 체중 데이터가 없습니다.', canvas.width / 2, canvas.height / 2 - 10);
-      ctx.font = '500 12px Plus Jakarta Sans, sans-serif';
-      ctx.fillText('상단의 [+ 오늘 체중 기록하기]를 눌러 첫 기록을 남겨보세요!', canvas.width / 2, canvas.height / 2 + 14);
-      ctx.restore();
+      setEmpty(canvas, entries.length === 0
+        ? '아직 기록이 없어요. 첫 체중을 기록해 보세요.'
+        : '이 기간에는 기록이 없어요. 기간을 넓혀 보세요.');
       return;
     }
+    setEmpty(canvas, null);
 
-    // Chronological order
-    const sorted = [...filteredEntries].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const ctx = canvas.getContext('2d');
+    const sorted = [...filteredEntries].sort((a, b) => a.date.localeCompare(b.date));
 
-    // Calculate 7-day moving average
-    const maData = Analytics.calculateMovingAverages(sorted, 7);
+    // 이동평균은 기간 밖의 이전 기록까지 반영해 계산한 뒤 잘라낸다
+    const allMa = Analytics.calculateMovingAverages(entries, 7);
+    const maByDate = new Map(allMa.map(d => [d.date, d.sma]));
 
     const labels = sorted.map(e => {
       const parts = e.date.split('-');
       return `${parseInt(parts[1], 10)}/${parseInt(parts[2], 10)}`;
     });
 
+    const target = Number(profile.targetWeight) || 68.0;
     const weightValues = sorted.map(e => e.weight);
-    const maValues = maData.map(d => d.sma);
-    const targetValues = sorted.map(() => profile.targetWeight || 68.0);
+    const maValues = sorted.map(e => maByDate.get(e.date) ?? null);
+    const targetValues = sorted.map(() => target);
 
-    // Calculate Y-axis bounds
-    const allWeights = [...weightValues, profile.targetWeight || 68.0];
-    const minW = Math.floor(Math.min(...allWeights) - 1.5);
-    const maxW = Math.ceil(Math.max(...allWeights) + 1.5);
+    const allWeights = [...weightValues, target];
+    const minW = Math.floor(Math.min(...allWeights) - 1);
+    const maxW = Math.ceil(Math.max(...allWeights) + 1);
 
-    // Gradient fill for weight line
-    const gradient = ctx.createLinearGradient(0, 0, 0, 320);
-    if (isDark) {
-      gradient.addColorStop(0, 'rgba(16, 185, 129, 0.35)');
-      gradient.addColorStop(1, 'rgba(16, 185, 129, 0.00)');
-    } else {
-      gradient.addColorStop(0, 'rgba(16, 185, 129, 0.25)');
-      gradient.addColorStop(1, 'rgba(16, 185, 129, 0.02)');
-    }
-
-    const gridColor = isDark ? 'rgba(255, 255, 255, 0.07)' : 'rgba(0, 0, 0, 0.06)';
-    const textColor = isDark ? '#9ca3af' : '#64748b';
-
-    if (trendChartInstance) {
-      trendChartInstance.destroy();
-    }
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.clientHeight || 300);
+    gradient.addColorStop(0, c.weightFill);
+    gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
     trendChartInstance = new Chart(ctx, {
       type: 'line',
       data: {
-        labels: labels,
+        labels,
         datasets: [
           {
-            label: '일일 체중 (kg)',
+            label: '체중',
             data: weightValues,
-            borderColor: '#10b981',
+            borderColor: c.weight,
             backgroundColor: gradient,
-            borderWidth: 2.5,
+            borderWidth: 2.25,
             fill: true,
             tension: 0.3,
-            pointBackgroundColor: '#10b981',
-            pointBorderColor: isDark ? '#111827' : '#ffffff',
+            pointBackgroundColor: c.weight,
+            pointBorderColor: c.surface,
             pointBorderWidth: 2,
-            pointRadius: labels.length > 40 ? 0 : 4,
+            pointRadius: labels.length > 40 ? 0 : 3.5,
             pointHoverRadius: 6,
             order: 2
           },
           {
-            label: '7일 이동평균 (추세)',
+            label: '7일 평균',
             data: maValues,
-            borderColor: '#06b6d4',
+            borderColor: c.trend,
             borderWidth: 2,
-            borderDash: [4, 4],
             fill: false,
             tension: 0.35,
             pointRadius: 0,
-            pointHoverRadius: 5,
+            pointHoverRadius: 4,
             order: 1
           },
           {
-            label: '목표 체중',
+            label: '목표',
             data: targetValues,
-            borderColor: '#8b5cf6',
+            borderColor: c.target,
             borderWidth: 1.5,
-            borderDash: [6, 6],
+            borderDash: [5, 5],
             fill: false,
             pointRadius: 0,
+            pointHoverRadius: 0,
             order: 3
           }
         ]
@@ -120,71 +155,52 @@ export const Charts = {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        interaction: {
-          mode: 'index',
-          intersect: false
-        },
+        interaction: { mode: 'index', intersect: false },
         plugins: {
-          legend: {
-            display: false // Custom HTML legend used
-          },
+          legend: { display: false },
           tooltip: {
-            backgroundColor: isDark ? 'rgba(17, 24, 39, 0.95)' : 'rgba(255, 255, 255, 0.95)',
-            titleColor: isDark ? '#f9fafb' : '#0f172a',
-            bodyColor: isDark ? '#d1d5db' : '#334155',
-            borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.1)',
-            borderWidth: 1,
-            padding: 12,
-            boxPadding: 6,
-            usePointStyle: true,
+            ...tooltipBase(c),
             callbacks: {
               title: (items) => {
-                const idx = items[0].dataIndex;
-                const entry = sorted[idx];
-                return `${entry.date} (${entry.timeOfDay === 'evening' ? '저녁' : '아침 공복'})`;
+                const entry = sorted[items[0].dataIndex];
+                return `${entry.date} · ${entry.timeOfDay === 'evening' ? '저녁' : '아침 공복'}`;
+              },
+              label: (item) => {
+                if (item.raw == null) return null;
+                return ` ${item.dataset.label}  ${Number(item.raw).toFixed(2)}kg`;
               },
               afterBody: (items) => {
-                const idx = items[0].dataIndex;
-                const entry = sorted[idx];
+                const entry = sorted[items[0].dataIndex];
                 const notes = [];
-                if (entry.note) notes.push(`💬 ${entry.note}`);
-                if (entry.bodyFat) notes.push(`체지방: ${entry.bodyFat}%`);
-                return notes.length ? ['----------------', ...notes] : [];
+                if (entry.bodyFat != null) notes.push(`체지방 ${entry.bodyFat}%`);
+                if (entry.note) notes.push(entry.note);
+                return notes;
               }
             }
           }
         },
         scales: {
           x: {
-            grid: {
-              color: gridColor,
-              drawBorder: false
-            },
+            border: { display: false },
+            grid: { display: false },
             ticks: {
-              color: textColor,
+              color: c.text,
               maxRotation: 0,
               autoSkip: true,
-              maxTicksLimit: 8,
-              font: {
-                family: 'Plus Jakarta Sans',
-                size: 11
-              }
+              maxTicksLimit: 7,
+              font: { family: FONT_FAMILY, size: 11 }
             }
           },
           y: {
             min: minW,
             max: maxW,
-            grid: {
-              color: gridColor,
-              drawBorder: false
-            },
+            border: { display: false },
+            grid: { color: c.grid },
             ticks: {
-              color: textColor,
-              callback: (val) => `${val}kg`,
-              font: {
-                family: 'JetBrains Mono',
-                size: 11
-              }
+              color: c.text,
+              maxTicksLimit: 6,
+              callback: (val) => `${val}`,
+              font: { family: FONT_FAMILY, size: 11 }
             }
           }
         }
@@ -195,48 +211,35 @@ export const Charts = {
   // Weekly Delta Bar Chart
   renderWeeklyDeltaChart(canvasId, entries) {
     const canvas = document.getElementById(canvasId);
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+    if (!canvas || !window.Chart) return;
+    const c = palette();
     const weeklyData = Analytics.getWeeklyAggregates(entries);
-
-    if (weeklyData.length === 0) {
-      if (weeklyDeltaChartInstance) {
-        weeklyDeltaChartInstance.destroy();
-        weeklyDeltaChartInstance = null;
-      }
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.save();
-      ctx.font = '500 13px Plus Jakarta Sans, sans-serif';
-      ctx.fillStyle = isDark ? '#6b7280' : '#94a3b8';
-      ctx.textAlign = 'center';
-      ctx.fillText('주간 기록이 쌓이면 증감량이 표시됩니다.', canvas.width / 2, canvas.height / 2);
-      ctx.restore();
-      return;
-    }
-
-    const labels = weeklyData.map(w => w.label);
-    const deltas = weeklyData.map(w => w.delta);
-    const bgColors = deltas.map(d => d <= 0 ? '#10b981' : '#f43f5e');
-
-    const gridColor = isDark ? 'rgba(255, 255, 255, 0.07)' : 'rgba(0, 0, 0, 0.06)';
-    const textColor = isDark ? '#9ca3af' : '#64748b';
 
     if (weeklyDeltaChartInstance) {
       weeklyDeltaChartInstance.destroy();
+      weeklyDeltaChartInstance = null;
     }
+    if (weeklyData.length < 2) {
+      setEmpty(canvas, '2주 이상 기록하면 주간 변화가 표시돼요.');
+      return;
+    }
+    setEmpty(canvas, null);
 
-    weeklyDeltaChartInstance = new Chart(ctx, {
+    // 첫 주는 비교 대상이 없으므로 제외
+    const data = weeklyData.slice(1);
+    const deltas = data.map(w => w.delta);
+
+    weeklyDeltaChartInstance = new Chart(canvas.getContext('2d'), {
       type: 'bar',
       data: {
-        labels: labels,
+        labels: data.map(w => w.label),
         datasets: [{
-          label: '주간 증감량 (kg)',
+          label: '주간 증감',
           data: deltas,
-          backgroundColor: bgColors,
+          backgroundColor: deltas.map(d => d <= 0 ? c.good : c.bad),
           borderRadius: 6,
-          borderSkipped: false
+          borderSkipped: false,
+          maxBarThickness: 28
         }]
       },
       options: {
@@ -245,9 +248,7 @@ export const Charts = {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: isDark ? 'rgba(17, 24, 39, 0.95)' : 'rgba(255, 255, 255, 0.95)',
-            titleColor: isDark ? '#f9fafb' : '#0f172a',
-            bodyColor: isDark ? '#d1d5db' : '#334155',
+            ...tooltipBase(c),
             callbacks: {
               label: (context) => {
                 const val = context.parsed.y;
@@ -258,18 +259,18 @@ export const Charts = {
         },
         scales: {
           x: {
+            border: { display: false },
             grid: { display: false },
-            ticks: {
-              color: textColor,
-              font: { family: 'Plus Jakarta Sans', size: 11 }
-            }
+            ticks: { color: c.text, font: { family: FONT_FAMILY, size: 11 } }
           },
           y: {
-            grid: { color: gridColor },
+            border: { display: false },
+            grid: { color: c.grid },
             ticks: {
-              color: textColor,
-              callback: (val) => `${val > 0 ? '+' : ''}${val}kg`,
-              font: { family: 'JetBrains Mono', size: 11 }
+              color: c.text,
+              maxTicksLimit: 5,
+              callback: (val) => `${val > 0 ? '+' : ''}${val}`,
+              font: { family: FONT_FAMILY, size: 11 }
             }
           }
         }
@@ -277,69 +278,56 @@ export const Charts = {
     });
   },
 
-  // Body Composition Dual-Axis Chart (Weight vs Body Fat %)
+  // Body Composition Dual-Axis Chart (Body Fat % vs Muscle kg)
   renderCompositionChart(canvasId, entries) {
     const canvas = document.getElementById(canvasId);
-    if (!canvas) return;
+    if (!canvas || !window.Chart) return;
+    const c = palette();
 
-    const ctx = canvas.getContext('2d');
-    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+    const validEntries = entries
+      .filter(e => e.bodyFat != null || e.muscleMass != null)
+      .sort((a, b) => a.date.localeCompare(b.date));
 
-    // Filter only entries that have bodyFat or muscleMass
-    const validEntries = entries.filter(e => e.bodyFat || e.muscleMass).sort((a, b) => new Date(a.date) - new Date(b.date));
+    if (compositionChartInstance) {
+      compositionChartInstance.destroy();
+      compositionChartInstance = null;
+    }
     if (validEntries.length < 2) {
-      if (compositionChartInstance) {
-        compositionChartInstance.destroy();
-        compositionChartInstance = null;
-      }
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.save();
-      ctx.font = '500 13px Plus Jakarta Sans, sans-serif';
-      ctx.fillStyle = isDark ? '#6b7280' : '#94a3b8';
-      ctx.textAlign = 'center';
-      ctx.fillText('체지방률이나 골격근량을 기록하시면 차트가 표시됩니다.', canvas.width / 2, canvas.height / 2);
-      ctx.restore();
+      setEmpty(canvas, '체지방률·골격근량을 2번 이상 기록하면 표시돼요.');
       return;
     }
+    setEmpty(canvas, null);
 
     const labels = validEntries.map(e => {
       const parts = e.date.split('-');
       return `${parseInt(parts[1], 10)}/${parseInt(parts[2], 10)}`;
     });
 
-    const bodyFats = validEntries.map(e => e.bodyFat || null);
-    const muscles = validEntries.map(e => e.muscleMass || null);
-
-    const gridColor = isDark ? 'rgba(255, 255, 255, 0.07)' : 'rgba(0, 0, 0, 0.06)';
-    const textColor = isDark ? '#9ca3af' : '#64748b';
-
-    if (compositionChartInstance) {
-      compositionChartInstance.destroy();
-    }
-
-    compositionChartInstance = new Chart(ctx, {
+    compositionChartInstance = new Chart(canvas.getContext('2d'), {
       type: 'line',
       data: {
-        labels: labels,
+        labels,
         datasets: [
           {
             label: '체지방률 (%)',
-            data: bodyFats,
-            borderColor: '#f59e0b',
-            backgroundColor: 'transparent',
-            borderWidth: 2.5,
+            data: validEntries.map(e => e.bodyFat),
+            borderColor: c.fat,
+            backgroundColor: c.fat,
+            borderWidth: 2,
             tension: 0.3,
-            pointRadius: 4,
+            pointRadius: 3,
+            spanGaps: true,
             yAxisID: 'yFat'
           },
           {
             label: '골격근량 (kg)',
-            data: muscles,
-            borderColor: '#8b5cf6',
-            backgroundColor: 'transparent',
-            borderWidth: 2.5,
+            data: validEntries.map(e => e.muscleMass),
+            borderColor: c.muscle,
+            backgroundColor: c.muscle,
+            borderWidth: 2,
             tension: 0.3,
-            pointRadius: 4,
+            pointRadius: 3,
+            spanGaps: true,
             yAxisID: 'yMuscle'
           }
         ]
@@ -350,33 +338,37 @@ export const Charts = {
         interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: {
-            labels: { color: textColor, font: { family: 'Plus Jakarta Sans', size: 12 } }
-          }
+            position: 'bottom',
+            labels: {
+              color: c.text,
+              usePointStyle: true,
+              pointStyle: 'circle',
+              boxWidth: 8,
+              boxHeight: 8,
+              font: { family: FONT_FAMILY, size: 12 }
+            }
+          },
+          tooltip: tooltipBase(c)
         },
         scales: {
           x: {
-            grid: { color: gridColor },
-            ticks: { color: textColor, font: { family: 'Plus Jakarta Sans', size: 11 } }
+            border: { display: false },
+            grid: { display: false },
+            ticks: { color: c.text, maxTicksLimit: 6, maxRotation: 0, font: { family: FONT_FAMILY, size: 11 } }
           },
           yFat: {
             type: 'linear',
             position: 'left',
-            grid: { color: gridColor },
-            ticks: {
-              color: '#f59e0b',
-              callback: (v) => `${v}%`,
-              font: { family: 'JetBrains Mono', size: 11 }
-            }
+            border: { display: false },
+            grid: { color: c.grid },
+            ticks: { color: c.text, maxTicksLimit: 5, callback: (v) => `${v}%`, font: { family: FONT_FAMILY, size: 11 } }
           },
           yMuscle: {
             type: 'linear',
             position: 'right',
+            border: { display: false },
             grid: { display: false },
-            ticks: {
-              color: '#8b5cf6',
-              callback: (v) => `${v}kg`,
-              font: { family: 'JetBrains Mono', size: 11 }
-            }
+            ticks: { color: c.text, maxTicksLimit: 5, callback: (v) => `${v}kg`, font: { family: FONT_FAMILY, size: 11 } }
           }
         }
       }
@@ -388,6 +380,7 @@ export const Charts = {
     if (filter === 'ALL') return entries;
 
     const now = new Date();
+    now.setHours(0, 0, 0, 0);
     let days = 30;
     if (filter === '7D') days = 7;
     else if (filter === '30D') days = 30;
@@ -395,7 +388,7 @@ export const Charts = {
     else if (filter === '180D') days = 180;
     else if (filter === '1Y') days = 365;
 
-    const cutoff = new Date(now.setDate(now.getDate() - days));
-    return entries.filter(e => new Date(e.date) >= cutoff);
+    now.setDate(now.getDate() - (days - 1));
+    return entries.filter(e => parseLocalDate(e.date) >= now);
   }
 };

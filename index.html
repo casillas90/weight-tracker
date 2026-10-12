@@ -2,220 +2,164 @@
 <html lang="ko" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
-  <title>스마트 체중 일기 & 심층 분석 | FitTrack</title>
-  <meta name="description" content="매일 체중을 손쉽게 기록하고 7일 이동평균선, BMI, 감량 속도 및 목표 달성일을 스마트하게 분석하는 웹 애플리케이션">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>체중일기</title>
+  <meta name="description" content="매일 체중을 기록하고 7일 평균 추세, BMI, 목표 달성 예상일을 확인하는 체중 관리 대시보드">
+
+  <!-- 저장된 테마를 렌더링 전에 적용해 깜빡임 방지 -->
+  <script>
+    try {
+      var t = localStorage.getItem('weight_tracker_theme');
+      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {}
+  </script>
 
   <!-- iOS / Mobile PWA Meta Tags -->
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="체중일기">
-  <meta name="theme-color" content="#0a0e17">
+  <meta name="theme-color" content="#0c0d10" id="metaThemeColor">
   <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="assets/icon-192.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="icon" href="favicon.ico">
 
-  <!-- Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Font -->
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 
   <!-- Chart.js & QRCode CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
   <!-- Core Stylesheet -->
-  <link rel="stylesheet" href="css/styles.css?v=20260916_1">
+  <link rel="stylesheet" href="css/styles.css?v=20261012_2">
 </head>
 <body>
 
-  <!-- ==========================================================================
-       Header
-       ========================================================================== -->
+  <!-- ========================= Header ========================= -->
   <header class="app-header">
     <div class="app-container header-inner">
-      <div class="brand" id="brandLogoBtn">
-        <div class="brand-icon-wrapper">⚖️</div>
-        <div>
-          <div class="brand-title">FitTrack <span class="brand-badge">PRO</span></div>
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-5 4 3 8-8"/><path d="M15 7h5v5"/></svg>
         </div>
+        <span class="brand-title">체중일기</span>
       </div>
 
       <div class="header-actions">
-        <!-- Streak Badge -->
-        <span class="brand-badge" id="headerStreakBadge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border-color: rgba(245, 158, 11, 0.3);">
-          🔥 0일
-        </span>
+        <span class="chip chip-streak" id="headerStreakBadge" title="연속 기록일">🔥 0일</span>
 
-        <!-- Cloud Sync Badge -->
-        <div class="sync-badge" id="cloudSyncBadge" title="클라우드 동기화 상태">
+        <div class="sync-badge" id="cloudSyncBadge" title="데이터 저장 위치">
           <span class="sync-dot"></span>
-          <span class="sync-text">로컬</span>
+          <span class="sync-text">로컬 저장</span>
         </div>
 
-        <!-- Share / QR Button -->
-        <button class="btn btn-outline" id="btnOpenShareModal" style="padding: 0.45rem 0.65rem; font-size: 0.8125rem;">
-          <span>📱</span><span class="share-btn-text"> 연결</span>
+        <button class="btn-icon" id="btnOpenShareModal" title="휴대폰으로 열기" aria-label="휴대폰으로 열기">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3"/></svg>
         </button>
 
-        <!-- Theme Toggle -->
-        <button class="btn-icon" id="themeToggleBtn" aria-label="테마 전환">☀️</button>
+        <button class="btn-icon" id="themeToggleBtn" aria-label="테마 전환"></button>
 
-        <!-- App Reload Button (for iOS Home Screen / PWA) -->
-        <button class="btn-icon" id="btnAppReload" title="최신 버전으로 새로고침" aria-label="새로고침">🔄</button>
+        <button class="btn-icon" id="btnAppReload" title="최신 버전으로 새로고침" aria-label="새로고침">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+        </button>
       </div>
     </div>
   </header>
 
-  <main class="app-container">
+  <main class="app-container main">
 
-    <!-- Update Alert Banner for iOS Standalone / Cache Busting -->
-    <div id="updateBanner" class="update-banner" style="display: none;">
-      <div style="display: flex; align-items: center; gap: 0.5rem;">
-        <span>🚀</span>
-        <span style="font-size: 0.8125rem; font-weight: 600;">최신 업데이트가 있습니다!</span>
-      </div>
-      <button class="btn btn-primary" id="btnApplyUpdate" style="padding: 0.3rem 0.7rem; font-size: 0.75rem; font-weight: 700;">지금 갱신</button>
+    <!-- Update Alert Banner -->
+    <div id="updateBanner" class="update-banner" hidden>
+      <span>새 버전이 있어요. 기록은 그대로 유지됩니다.</span>
+      <button class="btn btn-primary btn-sm" id="btnApplyUpdate">업데이트</button>
     </div>
 
-    <!-- ==========================================================================
-         Hero Overview Stats Cards
-         ========================================================================== -->
-    <section class="hero-stats-grid">
-      <!-- 1. Current Weight Card -->
-      <div class="stat-card primary">
-        <div class="stat-header">
-          <span class="stat-label">현재 체중</span>
-          <span class="stat-icon">⚖️</span>
+    <!-- ========================= Hero ========================= -->
+    <section class="hero">
+      <div class="hero-main card">
+        <div class="hero-top">
+          <div>
+            <div class="eyebrow">현재 체중</div>
+            <div class="hero-value-row">
+              <span class="hero-value num" id="statCurrentWeight">--.--</span>
+              <span class="hero-unit">kg</span>
+            </div>
+            <div class="hero-meta">
+              <span class="pill neutral" id="statDayDeltaPill">— 0.00kg</span>
+              <span class="muted" id="statLastDate">이전 기록 대비</span>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-lg hero-cta" id="btnOpenRecordModal">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            오늘 기록하기
+          </button>
         </div>
-        <div class="stat-value-row">
-          <span class="stat-value num-font" id="statCurrentWeight">--.--</span>
-          <span class="stat-unit">kg</span>
-        </div>
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-          <span class="stat-delta-pill neutral" id="statDayDeltaPill">— 0.00kg</span>
-          <span class="stat-footer-text">어제 대비</span>
+
+        <div class="goal-progress">
+          <div class="goal-progress-labels">
+            <span id="statProgressText">목표 달성률 0%</span>
+            <span>목표 <strong class="num" id="statTargetWeight">--.--kg</strong></span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="statProgressBar" style="width: 0%;"></div>
+          </div>
         </div>
       </div>
 
-      <!-- 2. 7-Day Moving Average Card -->
-      <div class="stat-card cyan">
-        <div class="stat-header">
-          <span class="stat-label">7일 이동평균 (추세)</span>
-          <span class="stat-icon">📈</span>
+      <div class="hero-side">
+        <div class="mini-stat card">
+          <div class="mini-label"><span class="dot" style="background: var(--chart-trend);"></span>7일 평균</div>
+          <div class="mini-value"><span class="num" id="statMovingAvg">--.--</span><small>kg</small></div>
+          <div class="mini-foot">하루 변동을 걸러낸 실제 추세</div>
         </div>
-        <div class="stat-value-row">
-          <span class="stat-value num-font" id="statMovingAvg">--.--</span>
-          <span class="stat-unit">kg</span>
+        <div class="mini-stat card">
+          <div class="mini-label"><span class="dot" style="background: var(--chart-target);"></span>목표까지</div>
+          <div class="mini-value"><span class="num" id="statRemainWeight">--.--</span><small>kg</small></div>
+          <div class="mini-foot" id="statGoalDateText">목표일을 설정해 보세요</div>
         </div>
-        <div class="stat-footer-text" style="color: var(--accent-secondary);">
-          💧 수분 변동 필터링된 실제 추세
-        </div>
-      </div>
-
-      <!-- 3. Target & Progress Card -->
-      <div class="stat-card violet">
-        <div class="stat-header">
-          <span class="stat-label">목표까지 남은 체중</span>
-          <span class="stat-icon">🎯</span>
-        </div>
-        <div class="stat-value-row">
-          <span class="stat-value num-font" id="statRemainWeight">--.--</span>
-          <span class="stat-unit">kg 남음</span>
-        </div>
-        <div class="progress-container">
-          <div class="progress-bar-fill" id="statProgressBar" style="width: 0%;"></div>
-        </div>
-        <div style="display: flex; justify-content: space-between; margin-top: 0.35rem;">
-          <span class="stat-footer-text" id="statProgressText">달성률 0%</span>
-          <span class="stat-footer-text">목표: <strong id="statTargetWeight">--.--kg</strong></span>
-        </div>
-      </div>
-
-      <!-- 4. BMI & Body Status Card -->
-      <div class="stat-card rose">
-        <div class="stat-header">
-          <span class="stat-label">BMI & 비만도</span>
-          <span class="stat-icon">🫀</span>
-        </div>
-        <div class="stat-value-row">
-          <span class="stat-value num-font" id="statBmiVal">--.-</span>
-          <span class="stat-unit">BMI</span>
-        </div>
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-          <span class="stat-delta-pill down" id="statBmiBadge">정상 체중</span>
-          <span class="stat-footer-text">비만학회 기준</span>
+        <div class="mini-stat card">
+          <div class="mini-label"><span class="dot" style="background: var(--bad);"></span>BMI</div>
+          <div class="mini-value"><span class="num" id="statBmiVal">--.-</span></div>
+          <div class="mini-foot"><span class="pill neutral" id="statBmiBadge">기록 대기</span></div>
         </div>
       </div>
     </section>
 
-    <!-- Top CTA Quick Action Bar -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
-      <h2 style="font-size: 1.25rem; font-weight: 800;">데이터 분석 대시보드</h2>
-      <button class="btn btn-primary" id="btnOpenRecordModal">
-        ➕ 오늘 체중 기록하기
-      </button>
-    </div>
-
-    <!-- ==========================================================================
-         Navigation Tabs Bar
-         ========================================================================== -->
-    <nav class="tabs-wrapper" aria-label="대시보드 탭">
-      <div class="tabs-list">
-        <button class="tab-btn active" data-tab="analytics">📊 추세 & 심층 분석</button>
-        <button class="tab-btn" data-tab="calendar">📅 캘린더 & 기록 내역</button>
-        <button class="tab-btn" data-tab="goals">🎯 목표 & 예측 리포트</button>
-        <button class="tab-btn" data-tab="sync">☁️ 외부 접속 & 구글 시트 연동</button>
-      </div>
+    <!-- ========================= Tabs (desktop) ========================= -->
+    <nav class="tabs-top" aria-label="화면 전환">
+      <button class="tab-btn active" data-tab="analytics">분석</button>
+      <button class="tab-btn" data-tab="calendar">기록</button>
+      <button class="tab-btn" data-tab="goals">목표</button>
+      <button class="tab-btn" data-tab="sync">설정</button>
     </nav>
 
-    <!-- ==========================================================================
-         TAB 1: Analytics & Visual Charts
-         ========================================================================== -->
+    <!-- ========================= TAB 1: Analytics ========================= -->
     <section class="tab-pane active" id="tab-analytics">
 
-      <!-- Smart Insights Alert Cards -->
-      <div class="insights-grid">
-        <div class="insight-box">
-          <div class="insight-icon">🎯</div>
-          <div>
-            <div class="insight-title">스마트 목표 예측</div>
-            <div class="insight-desc" id="insightProjectionText">
-              기록을 분석하여 목표 체중 도달일을 계산 중입니다...
-            </div>
-          </div>
+      <div class="insights">
+        <div class="insight">
+          <div class="insight-title">목표 달성 예측</div>
+          <div class="insight-desc" id="insightProjectionText">기록을 분석하고 있어요…</div>
         </div>
-
-        <div class="insight-box">
-          <div class="insight-icon cyan">⚡️</div>
-          <div>
-            <div class="insight-title">감량 페이스 진단</div>
-            <div class="insight-desc" id="insightRateText">
-              최근 추세를 기반으로 주당 감량 속도를 분석하고 있습니다.
-            </div>
-          </div>
+        <div class="insight">
+          <div class="insight-title">최근 페이스</div>
+          <div class="insight-desc" id="insightRateText">최근 추세를 계산하고 있어요…</div>
         </div>
-
-        <div class="insight-box">
-          <div class="insight-icon violet">🏆</div>
-          <div>
-            <div class="insight-title">전체 여정 성과</div>
-            <div class="insight-desc" id="insightTotalDelta">
-              시작 대비 총 감량치 계산 중...
-            </div>
-          </div>
+        <div class="insight">
+          <div class="insight-title">지금까지</div>
+          <div class="insight-desc" id="insightTotalDelta">시작 대비 변화를 계산하고 있어요…</div>
         </div>
       </div>
 
-      <!-- Main Trend Chart Card -->
       <div class="card">
         <div class="card-header">
-          <div class="card-title-group">
-            <h3 class="card-title">체중 변화 추세 및 이동평균선</h3>
-            <span class="card-subtitle">일일 수치와 7일 평활 추세를 함께 비교합니다</span>
+          <div>
+            <h3 class="card-title">체중 추세</h3>
+            <p class="card-subtitle">일일 체중과 7일 평균선</p>
           </div>
-
-          <!-- Time Range Filter Pills -->
-          <div class="filter-pills" role="group" aria-label="기간 필터">
+          <div class="segmented" role="group" aria-label="기간 필터">
             <button class="filter-pill-btn" data-filter="7D">1주</button>
             <button class="filter-pill-btn active" data-filter="30D">1개월</button>
             <button class="filter-pill-btn" data-filter="90D">3개월</button>
@@ -225,141 +169,108 @@
           </div>
         </div>
 
-        <div class="chart-wrapper">
+        <div class="chart-wrapper chart-lg">
           <canvas id="trendChartCanvas"></canvas>
         </div>
 
-        <!-- Custom Legend -->
-        <div class="chart-legend-custom">
-          <div class="legend-item">
-            <span class="legend-dot" style="background: var(--accent-primary);"></span>
-            <span>일일 체중</span>
-          </div>
-          <div class="legend-item">
-            <span class="legend-dot" style="background: var(--accent-secondary);"></span>
-            <span>7일 이동평균 (진짜 감량 추세)</span>
-          </div>
-          <div class="legend-item">
-            <span class="legend-dot" style="background: var(--accent-purple);"></span>
-            <span>목표 체중 기준선</span>
-          </div>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-line" style="background: var(--chart-weight);"></span>체중</span>
+          <span class="legend-item"><span class="legend-line" style="background: var(--chart-trend);"></span>7일 평균</span>
+          <span class="legend-item"><span class="legend-line dashed" style="color: var(--chart-target);"></span>목표</span>
         </div>
       </div>
 
-      <!-- Two-Column Sub Charts -->
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
-        <!-- Weekly Delta Bar Chart -->
+      <div class="grid-2">
         <div class="card">
           <div class="card-header">
             <div>
-              <h3 class="card-title">주간 체중 순변화량 (kg)</h3>
-              <span class="card-subtitle">지난 8주간 매주 감량 성과 비교</span>
+              <h3 class="card-title">주간 변화</h3>
+              <p class="card-subtitle">지난주 마지막 기록 대비 (kg)</p>
             </div>
           </div>
-          <div class="chart-wrapper" style="height: 250px;">
+          <div class="chart-wrapper chart-sm">
             <canvas id="weeklyDeltaCanvas"></canvas>
           </div>
         </div>
 
-        <!-- Body Composition Dual Line Chart -->
         <div class="card">
           <div class="card-header">
             <div>
-              <h3 class="card-title">체성분 변화 (인바디)</h3>
-              <span class="card-subtitle">체지방률(%) & 골격근량(kg)</span>
+              <h3 class="card-title">체성분</h3>
+              <p class="card-subtitle">체지방률과 골격근량</p>
             </div>
           </div>
-          <div class="chart-wrapper" style="height: 250px;">
+          <div class="chart-wrapper chart-sm">
             <canvas id="compositionCanvas"></canvas>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ==========================================================================
-         TAB 2: Calendar & Records History
-         ========================================================================== -->
+    <!-- ========================= TAB 2: Calendar & Records ========================= -->
     <section class="tab-pane" id="tab-calendar">
-      <!-- Calendar View Card -->
-      <div class="card calendar-card">
+      <div class="card">
         <div class="calendar-header">
-          <h3 class="calendar-title" id="calendarMonthTitle">2026년 9월</h3>
-          <div class="cal-nav-group">
-            <button class="btn btn-outline cal-nav-btn" id="btnCalPrev" aria-label="이전달">◀</button>
-            <button class="btn btn-outline cal-nav-btn" id="btnCalToday">오늘</button>
-            <button class="btn btn-outline cal-nav-btn" id="btnCalNext" aria-label="다음달">▶</button>
+          <h3 class="card-title" id="calendarMonthTitle">2026년 10월</h3>
+          <div class="cal-nav">
+            <button class="btn-icon" id="btnCalPrev" aria-label="이전 달">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <button class="btn btn-ghost btn-sm" id="btnCalToday">오늘</button>
+            <button class="btn-icon" id="btnCalNext" aria-label="다음 달">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
           </div>
         </div>
-
-        <div class="calendar-grid" id="calendarGrid">
-          <!-- Populated by JavaScript -->
-        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+        <p class="card-hint">날짜를 누르면 그날 기록을 추가하거나 수정할 수 있어요.</p>
       </div>
 
-      <!-- History Table Card -->
       <div class="card">
         <div class="card-header">
           <div>
-            <h3 class="card-title">전체 기록 내역</h3>
-            <span class="card-subtitle">기록을 클릭하거나 우측 버튼으로 수정/삭제할 수 있습니다</span>
-          </div>
-          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-            <button class="btn btn-outline" id="btnExportCSV">📥 CSV 엑셀 내보내기</button>
-            <button class="btn btn-outline" id="btnExportJSON">💾 백업 파일 다운로드</button>
-            <label class="btn btn-outline" style="cursor: pointer;">
-              📂 백업 복원
-              <input type="file" id="jsonFileInput" accept=".json" style="display: none;">
-            </label>
-            <button class="btn btn-outline" id="btnLoadSampleData" style="font-size: 0.8rem;">🔄 샘플 데이터 로드</button>
-            <button class="btn btn-outline" id="btnClearAllData" style="font-size: 0.8rem; color: var(--accent-rose); border-color: rgba(244, 63, 94, 0.3);">🗑️ 전체 데이터 0으로 초기화</button>
+            <h3 class="card-title">전체 기록</h3>
+            <p class="card-subtitle" id="entriesCountText">최신순</p>
           </div>
         </div>
-
         <div class="table-responsive">
           <table class="data-table">
             <thead>
               <tr>
-                <th>측정일자</th>
-                <th>시간대</th>
+                <th>날짜</th>
                 <th>체중</th>
-                <th>전일대비</th>
-                <th>체지방률</th>
-                <th>메모</th>
-                <th>관리</th>
+                <th>변화</th>
+                <th class="hide-sm">체지방</th>
+                <th class="hide-sm">메모</th>
+                <th aria-label="관리"></th>
               </tr>
             </thead>
-            <tbody id="entriesTableBody">
-              <!-- Populated by JavaScript -->
-            </tbody>
+            <tbody id="entriesTableBody"></tbody>
           </table>
         </div>
       </div>
     </section>
 
-    <!-- ==========================================================================
-         TAB 3: Goals & Forecast
-         ========================================================================== -->
+    <!-- ========================= TAB 3: Goals ========================= -->
     <section class="tab-pane" id="tab-goals">
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
-
-        <!-- Profile & Goal Form Card -->
+      <div class="grid-2">
         <div class="card">
           <div class="card-header">
             <div>
-              <h3 class="card-title">내 프로필 및 감량 목표 설정</h3>
-              <span class="card-subtitle">정확한 BMI 및 감량 목표일 예측에 사용됩니다</span>
+              <h3 class="card-title">프로필과 목표</h3>
+              <p class="card-subtitle">BMI와 목표 달성 예측에 사용돼요</p>
             </div>
           </div>
 
           <form id="profileForm">
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label" for="profileHeight">신장 (cm)</label>
-                <input type="number" id="profileHeight" class="form-input" required step="0.1" inputmode="decimal" value="175">
+                <label class="form-label" for="profileHeight">키 (cm)</label>
+                <input type="number" id="profileHeight" class="form-input" required step="0.1" min="100" max="250" inputmode="decimal" value="175">
               </div>
               <div class="form-group">
                 <label class="form-label" for="profileGender">성별</label>
-                <select id="profileGender" class="form-select">
+                <select id="profileGender" class="form-input">
                   <option value="male">남성</option>
                   <option value="female">여성</option>
                 </select>
@@ -369,155 +280,155 @@
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label" for="profileInitialWeight">시작 체중 (kg)</label>
-                <input type="number" id="profileInitialWeight" class="form-input" required step="0.01" inputmode="decimal" value="75.00">
+                <input type="number" id="profileInitialWeight" class="form-input" required step="0.01" min="20" max="400" inputmode="decimal" value="75.00">
               </div>
               <div class="form-group">
                 <label class="form-label" for="profileTargetWeight">목표 체중 (kg)</label>
-                <input type="number" id="profileTargetWeight" class="form-input" required step="0.01" inputmode="decimal" value="68.00">
+                <input type="number" id="profileTargetWeight" class="form-input" required step="0.01" min="20" max="400" inputmode="decimal" value="68.00">
               </div>
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="profileTargetDate">목표 달성 희망일</label>
+              <label class="form-label" for="profileTargetDate">목표 날짜</label>
               <input type="date" id="profileTargetDate" class="form-input" value="2026-12-31">
             </div>
 
-            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">
-              💾 설정 저장하기
-            </button>
+            <button type="submit" class="btn btn-primary btn-block">저장</button>
           </form>
         </div>
 
-        <!-- BMI & Healthy Range Info Card -->
         <div class="card">
           <div class="card-header">
             <div>
-              <h3 class="card-title">체중 가이드 및 감량 시뮬레이터</h3>
-              <span class="card-subtitle">건강한 다이어트를 위한 권장 감량 속도</span>
+              <h3 class="card-title">권장 감량 속도</h3>
+              <p class="card-subtitle">근손실과 요요를 줄이는 범위</p>
             </div>
           </div>
 
-          <div style="background: var(--bg-glass); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1rem;">
-            <div style="font-size: 0.8125rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.35rem;">💡 전문가 권장 감량 속도</div>
-            <div style="font-size: 0.875rem; color: var(--text-primary); line-height: 1.5;">
-              요요 현상 없이 근손실을 최소화하는 가장 이상적인 감량 속도는 <strong>주당 0.4kg ~ 0.8kg (한 달 2~3kg)</strong> 입니다.
-            </div>
-          </div>
+          <p class="note-box">일반적으로 <strong>주당 0.4~0.8kg (한 달 2~3kg)</strong> 정도가 무리 없는 속도로 알려져 있어요.</p>
 
-          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-            <div style="display: flex; justify-content: space-between; padding: 0.65rem 0.85rem; background: var(--bg-card); border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
-              <span>🐢 안전 감량 (주당 -0.3kg)</span>
-              <strong style="color: var(--accent-primary);">월 1.2kg 감량</strong>
-            </div>
-            <div style="display: flex; justify-content: space-between; padding: 0.65rem 0.85rem; background: var(--bg-card); border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
-              <span>🎯 표준 감량 (주당 -0.5kg)</span>
-              <strong style="color: var(--accent-secondary);">월 2.0kg 감량</strong>
-            </div>
-            <div style="display: flex; justify-content: space-between; padding: 0.65rem 0.85rem; background: var(--bg-card); border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
-              <span>🔥 집중 감량 (주당 -0.8kg)</span>
-              <strong style="color: var(--accent-rose);">월 3.2kg 감량</strong>
-            </div>
-          </div>
+          <ul class="pace-list">
+            <li><span>천천히 · 주당 0.3kg</span><strong class="num">월 1.2kg</strong></li>
+            <li><span>보통 · 주당 0.5kg</span><strong class="num">월 2.0kg</strong></li>
+            <li><span>빠르게 · 주당 0.8kg</span><strong class="num">월 3.2kg</strong></li>
+          </ul>
+
+          <div class="bmi-range" id="bmiRangeText"></div>
         </div>
-
       </div>
     </section>
 
-    <!-- ==========================================================================
-         TAB 4: External Access & Google Sheets Cloud Sync
-         ========================================================================== -->
+    <!-- ========================= TAB 4: Settings / Sync ========================= -->
     <section class="tab-pane" id="tab-sync">
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+      <div class="grid-2">
 
-        <!-- 1. External Access & Mobile Guide Card -->
+        <!-- Data Management -->
         <div class="card">
           <div class="card-header">
             <div>
-              <h3 class="card-title">📱 스마트폰 외부 접속 안내</h3>
-              <span class="card-subtitle">집 밖에서도 스마트폰으로 언제든 기록하세요</span>
+              <h3 class="card-title">내 데이터</h3>
+              <p class="card-subtitle">기록은 이 기기의 브라우저에 저장돼요</p>
             </div>
           </div>
 
-          <div style="text-align: center; margin-bottom: 1.25rem;">
-            <div class="qr-box" id="qrcodeContainer"></div>
-            <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 0.5rem;">
-              아이폰 카메라로 위 QR 코드를 비추면 즉시 접속됩니다.
-            </p>
-          </div>
+          <p class="note-box">
+            다른 기기나 브라우저로 옮기거나 혹시 모를 상황에 대비하려면 <strong>백업 파일</strong>을 가끔 받아 두세요.
+            사파리 방문 기록·웹사이트 데이터를 지우면 기록도 함께 지워집니다.
+          </p>
 
-          <div class="form-group">
-            <label class="form-label">현재 접속 링크</label>
-            <div class="share-url-box">
-              <input type="text" id="shareUrlInput" class="share-url-input" readonly>
-              <button class="btn btn-outline" id="btnCopyShareUrl">복사</button>
-            </div>
-          </div>
-
-          <!-- iOS PWA Guide -->
-          <div style="background: var(--bg-glass); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; margin-top: 1.25rem;">
-            <div style="font-weight: 700; font-size: 0.875rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
-              <span>📲</span> 아이폰 홈 화면에 앱처럼 추가하는 법
-            </div>
-            <ol style="font-size: 0.8125rem; color: var(--text-secondary); padding-left: 1.25rem; line-height: 1.6;">
-              <li>아이폰 사파리(Safari)로 이 페이지를 엽니다.</li>
-              <li>하단 중앙의 <strong>공유 아이콘 (네모 위 화살표)</strong> 클릭</li>
-              <li><strong>[홈 화면에 추가]</strong>를 누르면 실제 앱처럼 설치됩니다!</li>
-            </ol>
+          <div class="action-list">
+            <button class="action-row" id="btnExportJSON">
+              <span><strong>백업 파일 받기</strong><small>JSON · 복원용</small></span>
+              <span class="chev">›</span>
+            </button>
+            <label class="action-row" for="jsonFileInput">
+              <span><strong>백업 파일로 복원</strong><small>기존 기록은 유지하고 합쳐요</small></span>
+              <span class="chev">›</span>
+              <input type="file" id="jsonFileInput" accept=".json,application/json" hidden>
+            </label>
+            <button class="action-row" id="btnExportCSV">
+              <span><strong>엑셀(CSV)로 내보내기</strong><small>보기·분석용</small></span>
+              <span class="chev">›</span>
+            </button>
+            <button class="action-row" id="btnRestoreSnapshot" hidden>
+              <span><strong>직전 상태로 되돌리기</strong><small id="snapshotInfoText"></small></span>
+              <span class="chev">›</span>
+            </button>
+            <button class="action-row" id="btnLoadSampleData">
+              <span><strong>샘플 데이터 보기</strong><small>기록이 없을 때만 가능</small></span>
+              <span class="chev">›</span>
+            </button>
+            <button class="action-row danger" id="btnClearAllData">
+              <span><strong>모든 기록 삭제</strong><small>삭제 전 백업 파일이 자동으로 저장돼요</small></span>
+              <span class="chev">›</span>
+            </button>
           </div>
         </div>
 
-        <!-- 2. Google Sheets Cloud Sync Card -->
+        <!-- Google Sheets Sync -->
         <div class="card">
           <div class="card-header">
             <div>
-              <h3 class="card-title">📊 구글 시트(Google Sheets) 클라우드 연동</h3>
-              <span class="card-subtitle">내 구글 시트를 무료 클라우드 DB로 영구 활용</span>
+              <h3 class="card-title">구글 시트 연동</h3>
+              <p class="card-subtitle">내 구글 시트에 기록 사본을 저장해요</p>
             </div>
           </div>
 
           <form id="cloudConfigForm">
             <div class="form-group">
-              <label class="form-label" for="cloudGoogleSheetUrl">Google Apps Script 웹 앱 URL</label>
+              <label class="form-label" for="cloudGoogleSheetUrl">Apps Script 웹 앱 URL</label>
               <input type="url" id="cloudGoogleSheetUrl" class="form-input" placeholder="https://script.google.com/macros/s/.../exec">
-              <span style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.35rem;" id="syncStatusDesc">
-                로컬 모드 (구글 시트 미연결)
-              </span>
+              <span class="form-help" id="syncStatusDesc">로컬 모드 (구글 시트 미연결)</span>
             </div>
 
-            <div class="form-group" style="display: flex; align-items: center; gap: 0.6rem;">
-              <input type="checkbox" id="cloudAutoSync" style="width: 18px; height: 18px; accent-color: var(--accent-primary);">
-              <label for="cloudAutoSync" style="font-size: 0.875rem; font-weight: 600; cursor: pointer;">
-                기록할 때마다 구글 시트에 자동 저장
-              </label>
-            </div>
+            <label class="switch-row" for="cloudAutoSync">
+              <span>기록할 때마다 자동 저장</span>
+              <input type="checkbox" id="cloudAutoSync" class="switch">
+            </label>
 
-            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-              <button type="submit" class="btn btn-outline" style="flex: 1;">설정 저장</button>
-              <button type="button" class="btn btn-primary" id="btnSyncNow" style="flex: 1;">🔄 지금 즉시 시트와 동기화</button>
+            <div class="btn-row">
+              <button type="submit" class="btn btn-ghost">설정 저장</button>
+              <button type="button" class="btn btn-primary" id="btnSyncNow">지금 동기화</button>
             </div>
           </form>
 
-          <!-- 3-Step Setup Guide -->
-          <div style="margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.25rem;">
-            <div style="font-weight: 700; font-size: 0.875rem; margin-bottom: 0.75rem;">
-              📝 구글 시트 연동 3단계 (1분 완료)
-            </div>
-            <ol style="font-size: 0.8125rem; color: var(--text-secondary); padding-left: 1.25rem; line-height: 1.7;">
-              <li>구글 스프레드시트를 열고 <strong>[확장 프로그램] ➔ [Apps Script]</strong> 클릭</li>
-              <li>프로젝트 폴더의 <a href="google_apps_script.js" target="_blank" style="color: var(--accent-primary); text-decoration: underline;">google_apps_script.js</a> 코드를 복사해 붙여넣기</li>
-              <li>우측 상단 <strong>[배포] ➔ [새 배포]</strong> (유형: 웹 앱, 액세스 권한: 모든 사용자) 후 나오는 URL을 위에 입력하면 끝!</li>
+          <details class="details">
+            <summary>연동 방법</summary>
+            <ol>
+              <li>구글 스프레드시트에서 <strong>확장 프로그램 → Apps Script</strong>를 엽니다.</li>
+              <li><a href="google_apps_script.js" target="_blank" rel="noopener">google_apps_script.js</a> 코드를 붙여넣습니다.</li>
+              <li><strong>배포 → 새 배포</strong> (유형: 웹 앱, 액세스: 모든 사용자) 후 나온 URL을 위에 입력합니다.</li>
             </ol>
+          </details>
+        </div>
+
+        <!-- Phone access -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">휴대폰에서 열기</h3>
+              <p class="card-subtitle">QR을 찍거나 링크를 공유하세요</p>
+            </div>
           </div>
 
-          <!-- Free Permanent Deployment Guide (GitHub Pages / Vercel) -->
-          <div style="margin-top: 1.25rem; background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.25); border-radius: var(--radius-md); padding: 1rem;">
-            <div style="font-weight: 700; font-size: 0.875rem; color: var(--accent-purple); margin-bottom: 0.35rem;">
-              🌐 평생 무료 영구 웹 배포 (GitHub Pages / Vercel)
-            </div>
-            <div style="font-size: 0.8125rem; color: var(--text-primary); line-height: 1.5;">
-              맥북을 끄고 외출해도 언제든 접속할 수 있는 고유 웹 주소(예: <code style="font-family: var(--font-mono); color: var(--accent-secondary);">https://user.github.io/weight-tracker</code>)를 만드는 방법이 <strong>DEPLOY.md</strong>에 준비되어 있습니다.
-            </div>
+          <div class="qr-wrap">
+            <div class="qr-box" id="qrcodeContainer"></div>
           </div>
+
+          <div class="share-url-box">
+            <input type="text" id="shareUrlInput" class="form-input share-url-input" readonly>
+            <button class="btn btn-ghost" id="btnCopyShareUrl">복사</button>
+          </div>
+
+          <details class="details">
+            <summary>아이폰 홈 화면에 추가하기</summary>
+            <ol>
+              <li>사파리로 이 페이지를 엽니다.</li>
+              <li>하단의 <strong>공유 버튼</strong>을 누릅니다.</li>
+              <li><strong>홈 화면에 추가</strong>를 누르면 앱처럼 쓸 수 있어요.</li>
+            </ol>
+            <p class="form-help">홈 화면 앱과 사파리는 저장 공간이 서로 달라요. 한쪽에서만 꾸준히 기록하세요.</p>
+          </details>
         </div>
 
       </div>
@@ -525,128 +436,135 @@
 
   </main>
 
-  <!-- ==========================================================================
-       Floating Action Button (Mobile Friendly Record)
-       ========================================================================== -->
-  <button class="fab-record" id="fabRecordBtn" aria-label="체중 기록 추가">
-    <span>➕</span>
-    <span>기록하기</span>
-  </button>
+  <!-- ========================= Bottom Nav (mobile) ========================= -->
+  <nav class="bottom-nav" aria-label="화면 전환">
+    <button class="tab-btn active" data-tab="analytics">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
+      <span>분석</span>
+    </button>
+    <button class="tab-btn" data-tab="calendar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      <span>기록</span>
+    </button>
+    <button class="fab-record" id="fabRecordBtn" aria-label="체중 기록하기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+    <button class="tab-btn" data-tab="goals">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
+      <span>목표</span>
+    </button>
+    <button class="tab-btn" data-tab="sync">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span>설정</span>
+    </button>
+  </nav>
 
-  <!-- ==========================================================================
-       Modal 1: Record Weight Form (Bottom Sheet on Mobile)
-       ========================================================================== -->
-  <div class="modal-backdrop" id="recordModalBackdrop" role="dialog" aria-modal="true">
+  <!-- ========================= Modal: Record ========================= -->
+  <div class="modal-backdrop" id="recordModalBackdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal-dialog">
+      <div class="sheet-handle" aria-hidden="true"></div>
       <div class="modal-header">
         <h3 class="modal-title" id="modalTitle">오늘 체중 기록</h3>
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <button type="button" class="btn btn-outline" id="btnModalHeaderDelete" style="display: none; color: var(--accent-rose); border-color: rgba(244, 63, 94, 0.4); background: rgba(244, 63, 94, 0.08); font-size: 0.8rem; padding: 0.25rem 0.55rem; font-weight: 700; border-radius: 6px;">🗑️ 삭제</button>
-          <button class="btn-close" id="btnCloseRecordModal" aria-label="닫기">×</button>
+        <div class="modal-header-actions">
+          <button type="button" class="btn btn-danger-ghost btn-sm" id="btnModalHeaderDelete" hidden>삭제</button>
+          <button class="btn-icon" id="btnCloseRecordModal" aria-label="닫기">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
         </div>
       </div>
 
       <form id="recordForm">
-        <!-- Big Number Stepper -->
-        <div class="weight-stepper-box">
-          <div class="weight-display-large">
-            <input type="number" step="0.01" inputmode="decimal" id="recordWeightInput" class="weight-num-input" value="72.00" required>
-            <span class="stat-unit" style="font-size: 1.5rem;">kg</span>
+        <div class="weight-input-box">
+          <div class="weight-display">
+            <input type="number" step="0.01" min="20" max="400" inputmode="decimal" id="recordWeightInput" class="weight-num-input num" value="72.00" required aria-label="체중 (kg)">
+            <span class="weight-unit">kg</span>
           </div>
-
-          <div class="stepper-controls">
-            <button type="button" class="stepper-btn" data-step="-1.0">-1.0</button>
-            <button type="button" class="stepper-btn" data-step="-0.1">-0.1</button>
-            <button type="button" class="stepper-btn" data-step="-0.01" style="color: var(--accent-primary); border-color: rgba(16, 185, 129, 0.4);">-0.01</button>
-            <button type="button" class="stepper-btn" data-step="0.01" style="color: var(--accent-rose); border-color: rgba(244, 63, 94, 0.4);">+0.01</button>
+          <div class="stepper">
+            <button type="button" class="stepper-btn" data-step="-1.0">−1</button>
+            <button type="button" class="stepper-btn" data-step="-0.1">−0.1</button>
+            <button type="button" class="stepper-btn" data-step="-0.01">−0.01</button>
+            <button type="button" class="stepper-btn" data-step="0.01">+0.01</button>
             <button type="button" class="stepper-btn" data-step="0.1">+0.1</button>
-            <button type="button" class="stepper-btn" data-step="1.0">+1.0</button>
+            <button type="button" class="stepper-btn" data-step="1.0">+1</button>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label" for="recordDateInput">측정 일자</label>
+            <label class="form-label" for="recordDateInput">날짜</label>
             <input type="date" id="recordDateInput" class="form-input" required>
           </div>
           <div class="form-group">
-            <label class="form-label" for="recordTimeOfDay">측정 시간대</label>
-            <select id="recordTimeOfDay" class="form-select">
-              <option value="morning">🌅 아침 공복 (권장)</option>
-              <option value="evening">🌙 저녁 / 취침 전</option>
+            <label class="form-label" for="recordTimeOfDay">측정 시간</label>
+            <select id="recordTimeOfDay" class="form-input">
+              <option value="morning">아침 공복</option>
+              <option value="evening">저녁 / 자기 전</option>
             </select>
           </div>
         </div>
 
-        <!-- Optional Body Composition -->
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label" for="recordBodyFatInput">체지방률 (%) <span style="color: var(--text-muted); font-weight: 400;">선택</span></label>
-            <input type="number" step="0.01" inputmode="decimal" id="recordBodyFatInput" class="form-input" placeholder="예: 21.50">
+            <label class="form-label" for="recordBodyFatInput">체지방률 (%) <span class="optional">선택</span></label>
+            <input type="number" step="0.01" min="1" max="80" inputmode="decimal" id="recordBodyFatInput" class="form-input" placeholder="21.50">
           </div>
           <div class="form-group">
-            <label class="form-label" for="recordMuscleInput">골격근량 (kg) <span style="color: var(--text-muted); font-weight: 400;">선택</span></label>
-            <input type="number" step="0.01" inputmode="decimal" id="recordMuscleInput" class="form-input" placeholder="예: 32.00">
+            <label class="form-label" for="recordMuscleInput">골격근량 (kg) <span class="optional">선택</span></label>
+            <input type="number" step="0.01" min="1" max="150" inputmode="decimal" id="recordMuscleInput" class="form-input" placeholder="32.00">
           </div>
         </div>
 
-        <!-- Quick Condition Tags -->
         <div class="form-group">
-          <label class="form-label">오늘의 상태 태그 (선택)</label>
-          <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
-            <button type="button" class="stepper-btn tag-chip">🏃 운동완료</button>
-            <button type="button" class="stepper-btn tag-chip">💧 물 2L</button>
-            <button type="button" class="stepper-btn tag-chip">🥗 클린식단</button>
-            <button type="button" class="stepper-btn tag-chip">🍕 과식/치팅</button>
-            <button type="button" class="stepper-btn tag-chip">😴 붓기/피로</button>
+          <span class="form-label">오늘의 상태 <span class="optional">선택</span></span>
+          <!-- 태그 문구는 저장된 기록과 비교되므로 바꾸지 마세요 -->
+          <div class="tag-list">
+            <button type="button" class="tag-chip">🏃 운동완료</button>
+            <button type="button" class="tag-chip">💧 물 2L</button>
+            <button type="button" class="tag-chip">🥗 클린식단</button>
+            <button type="button" class="tag-chip">🍕 과식/치팅</button>
+            <button type="button" class="tag-chip">😴 붓기/피로</button>
           </div>
         </div>
 
-        <!-- Memo -->
         <div class="form-group">
-          <label class="form-label" for="recordNoteInput">한 줄 메모</label>
-          <input type="text" id="recordNoteInput" class="form-input" placeholder="식단, 컨디션 또는 운동 기록 (선택)">
+          <label class="form-label" for="recordNoteInput">메모 <span class="optional">선택</span></label>
+          <input type="text" id="recordNoteInput" class="form-input" maxlength="200" placeholder="식단, 운동, 컨디션">
         </div>
 
-        <div class="modal-actions-group" style="display: flex; gap: 0.6rem; margin-top: 0.75rem;">
-          <button type="button" class="btn btn-outline" id="btnModalDeleteRecord" style="display: none; color: var(--accent-rose); border-color: rgba(244, 63, 94, 0.5); background: rgba(244, 63, 94, 0.08); font-weight: 700; flex: 1; padding: 0.875rem 0.75rem; font-size: 0.95rem;">
-            🗑️ 기록 삭제
-          </button>
-          <button type="submit" class="btn btn-primary" id="btnModalSubmitRecord" style="flex: 2; padding: 0.875rem; font-size: 0.95rem; font-weight: 700;">
-            기록 저장하기
-          </button>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-danger-ghost" id="btnModalDeleteRecord" hidden>삭제</button>
+          <button type="submit" class="btn btn-primary btn-lg" id="btnModalSubmitRecord">저장</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- ==========================================================================
-       Modal 2: External Share & QR Code
-       ========================================================================== -->
-  <div class="modal-backdrop" id="shareModalBackdrop" role="dialog" aria-modal="true">
-    <div class="modal-dialog">
+  <!-- ========================= Modal: Share / QR ========================= -->
+  <div class="modal-backdrop" id="shareModalBackdrop" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle">
+    <div class="modal-dialog modal-sm">
+      <div class="sheet-handle" aria-hidden="true"></div>
       <div class="modal-header">
-        <h3 class="modal-title">📱 스마트폰 외부 연결</h3>
-        <button class="btn-close" id="btnCloseShareModal" aria-label="닫기">×</button>
+        <h3 class="modal-title" id="shareModalTitle">휴대폰으로 열기</h3>
+        <button class="btn-icon" id="btnCloseShareModal" aria-label="닫기">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
       </div>
 
-      <div style="text-align: center;">
+      <div class="qr-wrap">
         <div class="qr-box" id="shareModalQrContainer"></div>
-        <p style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.75rem;">
-          아이폰 카메라로 비추면 바로 열립니다.
-        </p>
+        <p class="form-help">휴대폰 카메라로 비추면 바로 열려요.</p>
       </div>
 
-      <div class="form-group" style="margin-top: 1.25rem;">
-        <div class="share-url-box">
-          <input type="text" id="modalShareUrlInput" class="share-url-input" readonly>
-          <button class="btn btn-primary" id="btnModalCopyShareUrl">링크 복사</button>
-        </div>
+      <div class="share-url-box">
+        <input type="text" id="modalShareUrlInput" class="form-input share-url-input" readonly>
+        <button class="btn btn-primary" id="btnModalCopyShareUrl">복사</button>
       </div>
     </div>
   </div>
 
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
   <!-- App Bootstrap JS -->
-  <script type="module" src="js/app.js?v=20260916_1"></script>
+  <script type="module" src="js/app.js?v=20261012_2"></script>
 </body>
 </html>
