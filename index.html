@@ -33,7 +33,7 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
   <!-- Core Stylesheet -->
-  <link rel="stylesheet" href="css/styles.css?v=20261012_2">
+  <link rel="stylesheet" href="css/styles.css?v=20261012_3">
 </head>
 <body>
 
@@ -223,6 +223,12 @@
           </div>
         </div>
         <div class="calendar-grid" id="calendarGrid"></div>
+        <div class="cal-legend">
+          <span><i class="sw down"></i>이전 기록보다 감소</span>
+          <span><i class="sw up"></i>이전 기록보다 증가</span>
+          <span><i class="sw same"></i>변화 없음 · 첫 기록</span>
+          <span><i class="sw today"></i>오늘</span>
+        </div>
         <p class="card-hint">날짜를 누르면 그날 기록을 추가하거나 수정할 수 있어요.</p>
       </div>
 
@@ -565,6 +571,6 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <!-- App Bootstrap JS -->
-  <script type="module" src="js/app.js?v=20261012_2"></script>
+  <script type="module" src="js/app.js?v=20261012_3"></script>
 </body>
 </html>

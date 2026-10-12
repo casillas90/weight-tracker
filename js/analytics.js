@@ -2,7 +2,7 @@
  * analytics.js - Statistical & Predictive Engine for Weight Tracking
  */
 
-import { getLocalDateString, parseLocalDate } from './storage.js?v=20261012_2';
+import { getLocalDateString, parseLocalDate } from './storage.js?v=20261012_3';
 
 export const Analytics = {
   // Calculate BMI and Korean medical classification

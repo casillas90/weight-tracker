@@ -169,11 +169,21 @@ h1, h2, h3, h4 { font-weight: 700; letter-spacing: -0.02em; }
   position: sticky;
   top: 0;
   z-index: 50;
-  padding-top: var(--safe-top);
-  background: color-mix(in srgb, var(--bg) 82%, transparent);
-  -webkit-backdrop-filter: saturate(180%) blur(16px);
-  backdrop-filter: saturate(180%) blur(16px);
+  /* 아이폰 상태바(시계·배터리) 아래로 한 칸 내려서 배치, 반투명/블러 없이 불투명 배경 */
+  padding-top: calc(var(--safe-top) + 6px);
+  background: var(--bg);
   border-bottom: 1px solid var(--border);
+}
+
+/* 아이폰 홈 화면 앱: 상태바 글자가 흰색이라 라이트 모드에서도 상태바 영역은 어둡게 깔아 준다 */
+.app-header::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: var(--safe-top);
+  background: #0c0d10;
 }
 
 .header-inner {
@@ -792,6 +802,30 @@ h1, h2, h3, h4 { font-weight: 700; letter-spacing: -0.02em; }
 
 .calendar-cell.down .cal-weight-val { color: var(--good); }
 .calendar-cell.up .cal-weight-val { color: var(--bad); }
+
+.cal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem 0.9rem;
+  margin-top: 0.85rem;
+  font-size: 0.75rem;
+  color: var(--text-2);
+}
+
+.cal-legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
+
+.cal-legend .sw {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.cal-legend .sw.down { background: var(--good-soft); box-shadow: inset 0 0 0 1.5px var(--good); }
+.cal-legend .sw.up { background: var(--bad-soft); box-shadow: inset 0 0 0 1.5px var(--bad); }
+.cal-legend .sw.same { background: var(--surface-2); box-shadow: inset 0 0 0 1.5px var(--border-strong); }
+.cal-legend .sw.today { background: var(--text); border-radius: 50%; }
 
 /* ==========================================================================
    Table

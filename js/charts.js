@@ -2,8 +2,8 @@
  * charts.js - Chart.js Visualizations for Weight Tracker & Analytics
  */
 
-import { Analytics } from './analytics.js?v=20261012_2';
-import { parseLocalDate } from './storage.js?v=20261012_2';
+import { Analytics } from './analytics.js?v=20261012_3';
+import { parseLocalDate } from './storage.js?v=20261012_3';
 
 
 const FONT_FAMILY = "'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif";

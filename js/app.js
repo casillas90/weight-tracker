@@ -2,14 +2,14 @@
  * app.js - Main Application Controller for Weight Tracker & Analytics
  */
 
-import { Storage, getLocalDateString, parseLocalDate } from './storage.js?v=20261012_2';
-import { Analytics } from './analytics.js?v=20261012_2';
-import { Charts } from './charts.js?v=20261012_2';
+import { Storage, getLocalDateString, parseLocalDate } from './storage.js?v=20261012_3';
+import { Analytics } from './analytics.js?v=20261012_3';
+import { Charts } from './charts.js?v=20261012_3';
 
 let currentFilter = '30D';
 let currentCalendarDate = new Date();
 let editingEntryId = null;
-const CURRENT_APP_VERSION = '20261012_2';
+const CURRENT_APP_VERSION = '20261012_3';
 
 document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
